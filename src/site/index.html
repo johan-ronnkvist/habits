@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI + Alpine.js</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a href="/auth/login" class="button">Sign in with Google</a>
+
+<script>
+    async function saveData() {
+        let response = await fetch('/api/save', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename: "user_settings.json", data: { theme: "dark" } })
+        });
+        console.log(await response.json());
+    }
+
+    async function loadData() {
+        let response = await fetch('/api/load?filename=user_settings.json');
+        let data = await response.json();
+        console.log(data);
+    }
+</script>
+
+
+</body>
+</html>
