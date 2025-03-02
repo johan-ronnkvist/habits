@@ -25,6 +25,9 @@ dev = [
     "pytest-cov>=6.0.0",
     "ruff>=0.9.9",
 ]
+stubs = [
+    "google-api-python-client-stubs>=1.29.0",
+]
 
 [build-system]
 requires = ["hatchling"]

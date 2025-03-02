@@ -5,7 +5,7 @@ import structlog
 import uvicorn
 from fastapi.staticfiles import StaticFiles
 
-import habits.router.auth as auth
+import router.auth
 
 logger = structlog.get_logger()
 
@@ -19,7 +19,7 @@ app.mount(
     name="static",
 )
 
-app.include_router(auth.router)
+app.include_router(router.auth.router)
 
 
 @app.get("/")
