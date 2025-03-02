@@ -1,15 +1,36 @@
-from typing import Any
+import os.path
 
 import fastapi
+import structlog
 import uvicorn
+from fastapi.staticfiles import StaticFiles
+
+import habits.router.auth
+
+logger = structlog.get_logger()
 
 app = fastapi.FastAPI()
 
+app.mount(
+    "/static",
+    StaticFiles(
+        directory=os.path.join(os.path.dirname(__file__), "..", "site"), html=True
+    ),
+    name="static",
+)
+
+app.include_router(habits.router.auth.router)
+
 
 @app.get("/")
-def read_root() -> dict[str, Any]:
-    return {"Hello": "World"}
+def index():
+    return fastapi.responses.RedirectResponse(url="/static")
+
+
+def run():
+    logger.debug("Starting server")
+    uvicorn.run("habits.main:app", host="localhost", port=8000, reload=True)
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="localhost", port=8000, reload=True)
+    run()
