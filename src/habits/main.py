@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
@@ -13,20 +14,23 @@ from .utils.logging_config import configure_logging, get_logger
 configure_logging(level="INFO", json_format=False, service_name="habits-tracker")
 logger = get_logger(__name__)
 
-# Initialize FastAPI app
-app = FastAPI(title="Habits Tracker", description="Simple habit tracking application")
 
-
-@app.on_event("startup")
-async def startup_event():
-    """Log application startup."""
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Manage application lifespan events."""
+    # Startup
     logger.info("Starting Habits Tracker application")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Log application shutdown."""
+    yield
+    # Shutdown
     logger.info("Shutting down Habits Tracker application")
+
+
+# Initialize FastAPI app with lifespan
+app = FastAPI(
+    title="Habits Tracker",
+    description="Simple habit tracking application",
+    lifespan=lifespan,
+)
 
 
 # Setup static files
@@ -38,7 +42,9 @@ app.include_router(habits_router)
 app.include_router(entries_router)
 app.include_router(pages_router)
 app.include_router(forms_router)
-app.include_router(dashboard_router)  # Include dashboard router last for catch-all route
+app.include_router(
+    dashboard_router
+)  # Include dashboard router last for catch-all route
 
 
 def main():

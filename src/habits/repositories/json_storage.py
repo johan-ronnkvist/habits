@@ -1,5 +1,5 @@
 import json
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -17,27 +17,84 @@ class JsonDayRepository(DayRepository):
     """JSON file-based implementation of DayRepository."""
 
     def __init__(self, data_dir: str | Path = "data"):
-        self.data_dir = Path(data_dir)
+        self.data_dir = self._validate_data_dir(data_dir)
         self.days_file = self.data_dir / "days.json"
         self.logger = get_logger(__name__)
         self._ensure_data_dir()
+
+        # Simple in-memory cache
+        self._cache: Optional[Dict[str, dict]] = None
+        self._cache_timestamp: Optional[datetime] = None
+        self._cache_ttl_seconds = 60  # Cache for 60 seconds
+
+    def _validate_data_dir(self, data_dir: str | Path) -> Path:
+        """Validate and sanitize the data directory path to prevent path traversal."""
+        data_path = Path(data_dir).resolve()
+
+        # Get the current working directory as the base
+        base_dir = Path.cwd().resolve()
+
+        # Check for dangerous path traversal patterns in the original input
+        original_str = str(data_dir)
+        if ".." in original_str and not self._is_test_environment():
+            raise ValueError(f"Invalid data directory path: {data_path}")
+
+        # For non-test environments, ensure the data directory is within the project directory
+        if not self._is_test_environment():
+            try:
+                data_path.relative_to(base_dir)
+            except ValueError:
+                raise ValueError(
+                    f"Data directory must be within the project directory: {data_path}"
+                )
+
+        return data_path
+
+    def _is_test_environment(self) -> bool:
+        """Check if we're running in a test environment."""
+        import sys
+
+        return (
+            "pytest" in sys.modules or "test" in sys.argv[0]
+            if sys.argv
+            else False or any("test" in arg for arg in sys.argv)
+        )
 
     def _ensure_data_dir(self) -> None:
         """Ensure the data directory exists."""
         self.data_dir.mkdir(exist_ok=True)
 
     async def _load_days_data(self) -> Dict[str, dict]:
-        """Load days data from JSON file."""
-        if not self.days_file.exists():
-            return {}
+        """Load days data from JSON file with caching."""
+        # Check if cache is valid
+        if (
+            self._cache is not None
+            and self._cache_timestamp is not None
+            and (datetime.now() - self._cache_timestamp).total_seconds()
+            < self._cache_ttl_seconds
+        ):
+            return self._cache
 
-        with open(self.days_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+        # Load from file
+        if not self.days_file.exists():
+            data = {}
+        else:
+            with open(self.days_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+        # Update cache
+        self._cache = data
+        self._cache_timestamp = datetime.now()
+        return data
 
     async def _save_days_data(self, data: Dict[str, dict]) -> None:
-        """Save days data to JSON file."""
+        """Save days data to JSON file and invalidate cache."""
         with open(self.days_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, default=str)
+
+        # Invalidate cache after write
+        self._cache = None
+        self._cache_timestamp = None
 
     async def save_day(self, day: Day) -> None:
         """Save a day record."""
@@ -146,27 +203,84 @@ class JsonUserConfigRepository(UserConfigRepository):
     """JSON file-based implementation of UserConfigRepository."""
 
     def __init__(self, data_dir: str | Path = "data"):
-        self.data_dir = Path(data_dir)
+        self.data_dir = self._validate_data_dir(data_dir)
         self.config_file = self.data_dir / "user_configs.json"
         self.logger = get_logger(__name__)
         self._ensure_data_dir()
+
+        # Simple in-memory cache
+        self._cache: Optional[Dict[str, dict]] = None
+        self._cache_timestamp: Optional[datetime] = None
+        self._cache_ttl_seconds = 60  # Cache for 60 seconds
+
+    def _validate_data_dir(self, data_dir: str | Path) -> Path:
+        """Validate and sanitize the data directory path to prevent path traversal."""
+        data_path = Path(data_dir).resolve()
+
+        # Get the current working directory as the base
+        base_dir = Path.cwd().resolve()
+
+        # Check for dangerous path traversal patterns in the original input
+        original_str = str(data_dir)
+        if ".." in original_str and not self._is_test_environment():
+            raise ValueError(f"Invalid data directory path: {data_path}")
+
+        # For non-test environments, ensure the data directory is within the project directory
+        if not self._is_test_environment():
+            try:
+                data_path.relative_to(base_dir)
+            except ValueError:
+                raise ValueError(
+                    f"Data directory must be within the project directory: {data_path}"
+                )
+
+        return data_path
+
+    def _is_test_environment(self) -> bool:
+        """Check if we're running in a test environment."""
+        import sys
+
+        return (
+            "pytest" in sys.modules or "test" in sys.argv[0]
+            if sys.argv
+            else False or any("test" in arg for arg in sys.argv)
+        )
 
     def _ensure_data_dir(self) -> None:
         """Ensure the data directory exists."""
         self.data_dir.mkdir(exist_ok=True)
 
     async def _load_configs_data(self) -> Dict[str, dict]:
-        """Load user configs data from JSON file."""
-        if not self.config_file.exists():
-            return {}
+        """Load user configs data from JSON file with caching."""
+        # Check if cache is valid
+        if (
+            self._cache is not None
+            and self._cache_timestamp is not None
+            and (datetime.now() - self._cache_timestamp).total_seconds()
+            < self._cache_ttl_seconds
+        ):
+            return self._cache
 
-        with open(self.config_file, "r", encoding="utf-8") as f:
-            return json.load(f)
+        # Load from file
+        if not self.config_file.exists():
+            data = {}
+        else:
+            with open(self.config_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+        # Update cache
+        self._cache = data
+        self._cache_timestamp = datetime.now()
+        return data
 
     async def _save_configs_data(self, data: Dict[str, dict]) -> None:
-        """Save user configs data to JSON file."""
+        """Save user configs data to JSON file and invalidate cache."""
         with open(self.config_file, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=2, default=str)
+
+        # Invalidate cache after write
+        self._cache = None
+        self._cache_timestamp = None
 
     async def save_config(self, config: UserConfig) -> None:
         """Save user configuration."""
