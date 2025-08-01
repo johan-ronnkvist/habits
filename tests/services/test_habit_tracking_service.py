@@ -76,7 +76,9 @@ class TestHabitTrackingService:
         assert len(existing_day.habit_entries) == 1
 
     @pytest.mark.asyncio
-    async def test_record_habit_entry_replaces_incomplete_entry(self, service, mock_day_repo):
+    async def test_record_habit_entry_replaces_incomplete_entry(
+        self, service, mock_day_repo
+    ):
         """Should allow replacing an incomplete entry (-1) with a completed one."""
         test_date = date(2024, 1, 15)
         old_entry = HabitEntry(habit_id="habit-123", completion_value=-1)  # Incomplete
@@ -90,10 +92,14 @@ class TestHabitTrackingService:
         assert existing_day.habit_entries[0] != old_entry
 
     @pytest.mark.asyncio
-    async def test_complete_habit_if_not_already_prevents_multiple_completions(self, service, mock_day_repo):
+    async def test_complete_habit_if_not_already_prevents_multiple_completions(
+        self, service, mock_day_repo
+    ):
         """Should prevent completing a habit that's already completed using safe method."""
         test_date = date(2024, 1, 15)
-        completed_entry = HabitEntry(habit_id="habit-123", completion_value=3)  # Already completed
+        completed_entry = HabitEntry(
+            habit_id="habit-123", completion_value=3
+        )  # Already completed
         existing_day = Day(date=test_date, habit_entries=[completed_entry])
         mock_day_repo.get_day.return_value = existing_day
 
@@ -101,7 +107,7 @@ class TestHabitTrackingService:
         entry, was_already_completed = await service.complete_habit_if_not_already(
             test_date, "habit-123", completion_value=5
         )
-        
+
         # Should return existing entry and indicate it was already completed
         assert was_already_completed is True
         assert entry.completion_value == 3  # Original value preserved
@@ -109,10 +115,14 @@ class TestHabitTrackingService:
         assert existing_day.habit_entries[0].completion_value == 3
 
     @pytest.mark.asyncio
-    async def test_complete_habit_if_not_already_allows_completing_from_incomplete(self, service, mock_day_repo):
+    async def test_complete_habit_if_not_already_allows_completing_from_incomplete(
+        self, service, mock_day_repo
+    ):
         """Should allow completing a habit that was previously marked incomplete."""
         test_date = date(2024, 1, 15)
-        incomplete_entry = HabitEntry(habit_id="habit-123", completion_value=-1)  # Incomplete
+        incomplete_entry = HabitEntry(
+            habit_id="habit-123", completion_value=-1
+        )  # Incomplete
         existing_day = Day(date=test_date, habit_entries=[incomplete_entry])
         mock_day_repo.get_day.return_value = existing_day
 
@@ -120,7 +130,7 @@ class TestHabitTrackingService:
         entry, was_already_completed = await service.complete_habit_if_not_already(
             test_date, "habit-123", completion_value=4
         )
-        
+
         assert was_already_completed is False  # Was not previously completed
         assert entry.completion_value == 4
         assert entry.is_completed
@@ -128,23 +138,31 @@ class TestHabitTrackingService:
         assert existing_day.habit_entries[0].completion_value == 4
 
     @pytest.mark.asyncio
-    async def test_record_habit_entry_allows_marking_complete_as_incomplete(self, service, mock_day_repo):
+    async def test_record_habit_entry_allows_marking_complete_as_incomplete(
+        self, service, mock_day_repo
+    ):
         """Should allow marking a completed habit as incomplete (for corrections)."""
         test_date = date(2024, 1, 15)
-        completed_entry = HabitEntry(habit_id="habit-123", completion_value=3)  # Completed
+        completed_entry = HabitEntry(
+            habit_id="habit-123", completion_value=3
+        )  # Completed
         existing_day = Day(date=test_date, habit_entries=[completed_entry])
         mock_day_repo.get_day.return_value = existing_day
 
         # This should work - marking as incomplete for correction
-        entry = await service.record_habit_entry(test_date, "habit-123", completion_value=-1)
-        
+        entry = await service.record_habit_entry(
+            test_date, "habit-123", completion_value=-1
+        )
+
         assert entry.completion_value == -1
         assert not entry.is_completed
         assert len(existing_day.habit_entries) == 1
         assert existing_day.habit_entries[0].completion_value == -1
 
     @pytest.mark.asyncio
-    async def test_complete_habit_if_not_already_with_no_existing_entry(self, service, mock_day_repo):
+    async def test_complete_habit_if_not_already_with_no_existing_entry(
+        self, service, mock_day_repo
+    ):
         """Should complete a habit when no existing entry exists."""
         test_date = date(2024, 1, 15)
         existing_day = Day(date=test_date, habit_entries=[])  # No existing entries
@@ -154,7 +172,7 @@ class TestHabitTrackingService:
         entry, was_already_completed = await service.complete_habit_if_not_already(
             test_date, "habit-123", completion_value=5, notes="First completion"
         )
-        
+
         assert was_already_completed is False
         assert entry.completion_value == 5
         assert entry.is_completed

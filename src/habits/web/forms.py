@@ -42,7 +42,9 @@ async def record_entry_form(
     habit_id: str = Form(...),
     action: str = Form(...),  # "complete" or "fail"
     notes: Optional[str] = Form(None),
-    target_date_str: Optional[str] = Form(None),  # Hidden field with current date context
+    target_date_str: Optional[str] = Form(
+        None
+    ),  # Hidden field with current date context
     service: HabitTrackingService = Depends(get_habit_service),
 ):
     """Handle habit entry recording from form with explicit actions."""
@@ -54,7 +56,7 @@ async def record_entry_form(
             target_date = date.today()
     else:
         target_date = date.today()
-    
+
     try:
         if action == "complete":
             await service.record_habit_completion(target_date, habit_id, notes)
@@ -63,14 +65,16 @@ async def record_entry_form(
         else:
             # For backward compatibility, fall back to legacy method
             completion_value = 1 if action == "complete" else -1
-            await service.record_habit_entry(target_date, habit_id, completion_value, notes)
+            await service.record_habit_entry(
+                target_date, habit_id, completion_value, notes
+            )
     except HabitConstraintError:
         # Constraint violation - habit already recorded
         # For web form, we just redirect regardless - user will see current state
         pass
-    
+
     # Redirect back to the same date view
     date_url = format_date_for_url(target_date)
-    redirect_url = f"/{date_url}" if date_url != 'today' else "/today"
-    
+    redirect_url = f"/{date_url}" if date_url != "today" else "/today"
+
     return RedirectResponse(url=redirect_url, status_code=303)

@@ -25,24 +25,27 @@ async def record_entry(
     )
 
     today = date.today()
-    
+
     # Check if we're trying to complete a habit (completion_value >= 0)
     if entry.completion_value is not None and entry.completion_value >= 0:
         # Use the safe completion method
-        habit_entry, was_already_completed = await service.complete_habit_if_not_already(
+        (
+            habit_entry,
+            was_already_completed,
+        ) = await service.complete_habit_if_not_already(
             today, entry.habit_id, entry.completion_value, entry.notes
         )
-        
+
         if was_already_completed:
             logger.info(
                 "API entry recording - habit already completed",
                 habit_id=entry.habit_id,
-                existing_completion_value=habit_entry.completion_value
+                existing_completion_value=habit_entry.completion_value,
             )
             return {
                 "message": "Habit already completed for today",
                 "entry": habit_entry.model_dump(),
-                "was_already_completed": True
+                "was_already_completed": True,
             }
     else:
         # For non-completion entries (notes updates, marking incomplete), use regular method
@@ -55,12 +58,12 @@ async def record_entry(
         "API entry recorded successfully",
         habit_id=entry.habit_id,
         is_completed=habit_entry.is_completed,
-        was_already_completed=was_already_completed
+        was_already_completed=was_already_completed,
     )
     return {
         "message": "Entry recorded successfully",
         "entry": habit_entry.model_dump(),
-        "was_already_completed": was_already_completed
+        "was_already_completed": was_already_completed,
     }
 
 

@@ -1,0 +1,17 @@
+{
+  "default_user": {
+    "habits": [
+      {
+        "id": "food-habit-fixed-id",
+        "title": "Food",
+        "description": "I am eating sensible food both in amount and nutrition."
+      },
+      {
+        "id": "b2e8c5ae-8ae2-4484-9be5-bfd4272ee238",
+        "title": "Workout",
+        "description": "Some form of workout"
+      }
+    ],
+    "user_id": "default_user"
+  }
+}

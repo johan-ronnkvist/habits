@@ -10,8 +10,20 @@
       "Bash(git pull:*)",
       "Bash(find:*)",
       "Bash(git checkout:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(timeout:*)",
+      "Bash(uv add:*)",
+      "Bash(curl:*)",
+      "Bash(pkill:*)",
+      "Bash(git push:*)",
+      "Bash(gh pr create:*)",
+      "Bash(gh pr view:*)",
+      "Bash(git rm:*)",
+      "Bash(gh pr checks:*)",
+      "Bash(ls:*)"
     ],
     "deny": []
-  }
+  },
+  "$schema": "https://json.schemastore.org/claude-code-settings.json"
 }

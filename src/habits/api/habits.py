@@ -57,7 +57,8 @@ async def get_habits(service: HabitTrackingService = Depends(get_habit_service))
 
 @router.post("/habits/complete")
 async def complete_habit(
-    completion: HabitCompletionCreate, service: HabitTrackingService = Depends(get_habit_service)
+    completion: HabitCompletionCreate,
+    service: HabitTrackingService = Depends(get_habit_service),
 ):
     """Mark a habit as successfully completed for today."""
     logger.info(
@@ -67,34 +68,35 @@ async def complete_habit(
     )
 
     today = date.today()
-    
+
     try:
         habit_entry = await service.record_habit_completion(
             today, completion.habit_id, completion.notes
         )
-        
+
         logger.info(
             "API habit completed successfully",
             habit_id=completion.habit_id,
-            status=habit_entry.status.value if habit_entry.status else None
+            status=habit_entry.status.value if habit_entry.status else None,
         )
         return {
             "message": "Habit completed successfully",
             "entry": habit_entry.model_dump(),
-            "status": habit_entry.status.value if habit_entry.status else None
+            "status": habit_entry.status.value if habit_entry.status else None,
         }
     except HabitConstraintError as e:
         logger.warning(
             "API habit completion failed - constraint violation",
             habit_id=completion.habit_id,
-            error=str(e)
+            error=str(e),
         )
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/habits/fail")
 async def fail_habit(
-    failure: HabitFailureCreate, service: HabitTrackingService = Depends(get_habit_service)
+    failure: HabitFailureCreate,
+    service: HabitTrackingService = Depends(get_habit_service),
 ):
     """Mark a habit attempt as failed for today."""
     logger.info(
@@ -104,27 +106,27 @@ async def fail_habit(
     )
 
     today = date.today()
-    
+
     try:
         habit_entry = await service.record_habit_failure(
             today, failure.habit_id, failure.notes
         )
-        
+
         logger.info(
             "API habit failure recorded successfully",
             habit_id=failure.habit_id,
-            status=habit_entry.status.value if habit_entry.status else None
+            status=habit_entry.status.value if habit_entry.status else None,
         )
         return {
             "message": "Habit failure recorded",
             "entry": habit_entry.model_dump(),
-            "status": habit_entry.status.value if habit_entry.status else None
+            "status": habit_entry.status.value if habit_entry.status else None,
         }
     except HabitConstraintError as e:
         logger.warning(
             "API habit failure recording failed - constraint violation",
             habit_id=failure.habit_id,
-            error=str(e)
+            error=str(e),
         )
         raise HTTPException(status_code=400, detail=str(e))
 

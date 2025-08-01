@@ -39,7 +39,9 @@ async def get_dashboard_data(
             "completed": entry.is_completed,
             "failed": entry.is_failed,
             "completion_value": entry.completion_value,
-            "status": entry.status if isinstance(entry.status, str) else (entry.status.value if entry.status else None),
+            "status": entry.status
+            if isinstance(entry.status, str)
+            else (entry.status.value if entry.status else None),
             "notes": entry.notes,
         }
 
@@ -82,7 +84,7 @@ async def today_dashboard(
 ):
     """Dashboard for today (explicit URL)."""
     logger.info("Today dashboard accessed")
-    
+
     today = date.today()
     data = await get_dashboard_data(today, service)
 
@@ -97,9 +99,9 @@ async def today_dashboard(
 
 @router.get("/{date_path:path}", response_class=HTMLResponse)
 async def date_dashboard(
-    request: Request, 
+    request: Request,
     date_path: str,
-    service: HabitTrackingService = Depends(get_habit_service)
+    service: HabitTrackingService = Depends(get_habit_service),
 ):
     """Dashboard for specific date from URL path."""
     try:
@@ -107,9 +109,9 @@ async def date_dashboard(
         logger.info(
             "Date dashboard accessed",
             date_path=date_path,
-            parsed_date=target_date.isoformat()
+            parsed_date=target_date.isoformat(),
         )
-        
+
         data = await get_dashboard_data(target_date, service)
 
         return templates.TemplateResponse(

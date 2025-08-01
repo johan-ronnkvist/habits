@@ -3,12 +3,13 @@
 
 class HabitsError(Exception):
     """Base exception class for all habits domain errors."""
+
     pass
 
 
 class HabitAlreadyCompletedException(HabitsError):
     """Raised when trying to complete a habit that's already completed for the day."""
-    
+
     def __init__(self, habit_id: str, date: str, existing_completion_value: int):
         self.habit_id = habit_id
         self.date = date
@@ -21,4 +22,5 @@ class HabitAlreadyCompletedException(HabitsError):
 
 class InvalidHabitEntryException(HabitsError):
     """Raised when trying to create an invalid habit entry."""
+
     pass

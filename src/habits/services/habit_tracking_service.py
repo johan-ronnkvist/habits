@@ -90,8 +90,14 @@ class HabitTrackingService:
                 context,
                 replaced_existing=replaced_existing,
                 is_completed=entry.is_completed,
-                status=entry.status if isinstance(entry.status, str) else entry.status.value if entry.status else None,
-                was_already_completed=existing_entry.is_completed if existing_entry else False
+                status=entry.status
+                if isinstance(entry.status, str)
+                else entry.status.value
+                if entry.status
+                else None,
+                was_already_completed=existing_entry.is_completed
+                if existing_entry
+                else False,
             )
             return entry
         except Exception as e:
@@ -105,15 +111,15 @@ class HabitTrackingService:
         notes: Optional[str] = None,
     ) -> HabitEntry:
         """Record a successful habit completion.
-        
+
         Args:
             target_date: Date when the habit was completed
             habit_id: ID of the habit that was completed
             notes: Optional notes about the completion
-            
+
         Returns:
             The created HabitEntry with COMPLETED status
-            
+
         Raises:
             HabitConstraintError: If habit is already recorded for this day
         """
@@ -124,22 +130,35 @@ class HabitTrackingService:
             habit_id=habit_id,
             has_notes=notes is not None,
         )
-        
+
         try:
             # Check if habit already has an entry for this day
             existing_entry = await self.get_habit_entry(target_date, habit_id)
             if existing_entry:
-                status_value = existing_entry.status if isinstance(existing_entry.status, str) else existing_entry.status.value if existing_entry.status else 'unknown'
+                status_value = (
+                    existing_entry.status
+                    if isinstance(existing_entry.status, str)
+                    else existing_entry.status.value
+                    if existing_entry.status
+                    else "unknown"
+                )
                 error = HabitConstraintError(
                     f"Habit '{habit_id}' already recorded for {target_date.isoformat()} "
                     f"with status: {status_value}"
                 )
                 log_service_completion(
-                    self.logger, context, success=False, error=error,
-                    existing_status=existing_entry.status if isinstance(existing_entry.status, str) else existing_entry.status.value if existing_entry.status else None
+                    self.logger,
+                    context,
+                    success=False,
+                    error=error,
+                    existing_status=existing_entry.status
+                    if isinstance(existing_entry.status, str)
+                    else existing_entry.status.value
+                    if existing_entry.status
+                    else None,
                 )
                 raise error
-            
+
             # Create completion entry
             day = await self.get_or_create_day(target_date)
             entry = HabitEntry(
@@ -147,12 +166,10 @@ class HabitTrackingService:
             )
             day.add_habit_entry(entry)
             await self.day_repo.save_day(day)
-            
-            log_service_completion(
-                self.logger, context, status="completed"
-            )
+
+            log_service_completion(self.logger, context, status="completed")
             return entry
-            
+
         except Exception as e:
             log_service_completion(self.logger, context, success=False, error=e)
             raise
@@ -164,15 +181,15 @@ class HabitTrackingService:
         notes: Optional[str] = None,
     ) -> HabitEntry:
         """Record a failed habit attempt.
-        
+
         Args:
             target_date: Date when the habit attempt failed
             habit_id: ID of the habit that failed
             notes: Optional notes about why it failed
-            
+
         Returns:
             The created HabitEntry with FAILED status
-            
+
         Raises:
             HabitConstraintError: If habit is already recorded for this day
         """
@@ -183,22 +200,35 @@ class HabitTrackingService:
             habit_id=habit_id,
             has_notes=notes is not None,
         )
-        
+
         try:
             # Check if habit already has an entry for this day
             existing_entry = await self.get_habit_entry(target_date, habit_id)
             if existing_entry:
-                status_value = existing_entry.status if isinstance(existing_entry.status, str) else existing_entry.status.value if existing_entry.status else 'unknown'
+                status_value = (
+                    existing_entry.status
+                    if isinstance(existing_entry.status, str)
+                    else existing_entry.status.value
+                    if existing_entry.status
+                    else "unknown"
+                )
                 error = HabitConstraintError(
                     f"Habit '{habit_id}' already recorded for {target_date.isoformat()} "
                     f"with status: {status_value}"
                 )
                 log_service_completion(
-                    self.logger, context, success=False, error=error,
-                    existing_status=existing_entry.status if isinstance(existing_entry.status, str) else existing_entry.status.value if existing_entry.status else None
+                    self.logger,
+                    context,
+                    success=False,
+                    error=error,
+                    existing_status=existing_entry.status
+                    if isinstance(existing_entry.status, str)
+                    else existing_entry.status.value
+                    if existing_entry.status
+                    else None,
                 )
                 raise error
-            
+
             # Create failure entry
             day = await self.get_or_create_day(target_date)
             entry = HabitEntry(
@@ -206,12 +236,10 @@ class HabitTrackingService:
             )
             day.add_habit_entry(entry)
             await self.day_repo.save_day(day)
-            
-            log_service_completion(
-                self.logger, context, status="failed"
-            )
+
+            log_service_completion(self.logger, context, status="failed")
             return entry
-            
+
         except Exception as e:
             log_service_completion(self.logger, context, success=False, error=e)
             raise
@@ -224,10 +252,10 @@ class HabitTrackingService:
         notes: Optional[str] = None,
     ) -> tuple[HabitEntry, bool]:
         """Complete a habit only if it's not already completed.
-        
+
         DEPRECATED: Use record_habit_completion() for new code.
         This method maintains backward compatibility.
-        
+
         Returns:
             tuple: (entry, was_already_completed)
             - entry: The habit entry (existing or new)
@@ -241,31 +269,37 @@ class HabitTrackingService:
             completion_value=completion_value,
             has_notes=notes is not None,
         )
-        
+
         try:
             # Check if habit is already completed (not just any entry)
             existing_entry = await self.get_habit_entry(target_date, habit_id)
-            
+
             if existing_entry and existing_entry.is_completed:
                 # Already completed, return existing entry
                 log_service_completion(
                     self.logger,
                     context,
                     was_already_completed=True,
-                    existing_status=existing_entry.status if isinstance(existing_entry.status, str) else existing_entry.status.value if existing_entry.status else None
+                    existing_status=existing_entry.status
+                    if isinstance(existing_entry.status, str)
+                    else existing_entry.status.value
+                    if existing_entry.status
+                    else None,
                 )
                 return existing_entry, True
-            
+
             # Not completed yet (either no entry or failed entry), record completion
-            entry = await self.record_habit_entry(target_date, habit_id, completion_value, notes)
+            entry = await self.record_habit_entry(
+                target_date, habit_id, completion_value, notes
+            )
             log_service_completion(
                 self.logger,
                 context,
                 was_already_completed=False,
-                new_completion_value=completion_value
+                new_completion_value=completion_value,
             )
             return entry, False
-            
+
         except Exception as e:
             log_service_completion(self.logger, context, success=False, error=e)
             raise
@@ -371,7 +405,7 @@ class HabitTrackingService:
         try:
             config = await self.config_repo.get_config(user_id)
             habits = config.habits if config else []
-            
+
             # Log habit IDs for debugging ID consistency issues
             habit_ids = [habit.id for habit in habits] if habits else []
             log_service_completion(

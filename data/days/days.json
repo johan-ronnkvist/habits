@@ -1,0 +1,102 @@
+{
+  "2025-07-31": {
+    "date": "2025-07-31",
+    "habit_entries": [
+      {
+        "habit_id": "food-habit-fixed-id",
+        "completion_value": 1,
+        "notes": null,
+        "completed_at": null
+      }
+    ]
+  },
+  "2025-08-01": {
+    "date": "2025-08-01",
+    "habit_entries": [
+      {
+        "habit_id": "food-habit-fixed-id",
+        "completion_value": 1,
+        "status": "completed",
+        "notes": null,
+        "completed_at": null
+      },
+      {
+        "habit_id": "b2e8c5ae-8ae2-4484-9be5-bfd4272ee238",
+        "completion_value": 1,
+        "status": "completed",
+        "notes": null,
+        "completed_at": null
+      }
+    ]
+  },
+  "2025-08-02": {
+    "date": "2025-08-02",
+    "habit_entries": [
+      {
+        "habit_id": "food-habit-fixed-id",
+        "status": "HabitStatus.COMPLETED",
+        "completion_value": 1,
+        "notes": "Completed successfully\\!",
+        "completed_at": null,
+        "is_completed": true,
+        "is_failed": false
+      }
+    ]
+  },
+  "2025-08-03": {
+    "date": "2025-08-03",
+    "habit_entries": [
+      {
+        "habit_id": "food-habit-fixed-id",
+        "completion_value": 1,
+        "status": "completed",
+        "notes": "Completed\\!",
+        "completed_at": null,
+        "is_completed": true,
+        "is_failed": false
+      }
+    ]
+  },
+  "2025-08-04": {
+    "date": "2025-08-04",
+    "habit_entries": [
+      {
+        "habit_id": "food-habit-fixed-id",
+        "completion_value": 1,
+        "status": "completed",
+        "notes": "Successfully done\\!",
+        "completed_at": null,
+        "is_completed": true,
+        "is_failed": false
+      }
+    ]
+  },
+  "2025-08-05": {
+    "date": "2025-08-05",
+    "habit_entries": [
+      {
+        "habit_id": "food-habit-fixed-id",
+        "completion_value": -1,
+        "status": "failed",
+        "notes": "Did not complete",
+        "completed_at": null,
+        "is_completed": false,
+        "is_failed": true
+      }
+    ]
+  },
+  "2025-08-10": {
+    "date": "2025-08-10",
+    "habit_entries": [
+      {
+        "habit_id": "food-habit-fixed-id",
+        "completion_value": 1,
+        "status": "completed",
+        "notes": "Test from curl",
+        "completed_at": null,
+        "is_completed": true,
+        "is_failed": false
+      }
+    ]
+  }
+}
