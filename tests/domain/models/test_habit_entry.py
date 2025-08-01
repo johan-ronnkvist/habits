@@ -50,9 +50,9 @@ class TestHabitEntry:
         entry = HabitEntry(habit_id="habit-123", completion_value=0)
         assert entry.is_completed
 
-    def test_negative_completion_value_is_completed(self):
+    def test_negative_completion_value_is_incomplete(self):
         entry = HabitEntry(habit_id="habit-123", completion_value=-1)
-        assert entry.is_completed
+        assert not entry.is_completed
 
     def test_habit_entry_serialization(self):
         completed_time = datetime(2024, 1, 15, 10, 30)
