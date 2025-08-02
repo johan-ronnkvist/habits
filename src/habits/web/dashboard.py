@@ -28,9 +28,8 @@ router = APIRouter(tags=["dashboard"])
 
 async def get_weekly_overview(target_date: date, service: HabitTrackingService) -> dict:
     """Get weekly overview data showing daily progress in the context of weekly goals."""
-    # Get user's week start day
-    user_config = await service.config_repo.get_config(DEFAULT_USER_ID)
-    week_start_day = user_config.week_start_day if user_config else 1
+    # Always use Monday as week start (ISO 8601 standard)
+    week_start_day = 1  # Monday
 
     # Calculate week boundaries
     weekly_service = WeeklyAnalysisService(service.day_repo, service.config_repo)
@@ -113,6 +112,7 @@ async def get_weekly_overview(target_date: date, service: HabitTrackingService) 
                 "is_today": is_today,
                 "is_past": is_past,
                 "is_future": is_future,
+                "is_selected": day_date == target_date,
                 "can_navigate": is_past or is_today,
                 "url": format_date_for_url(day_date) if (is_past or is_today) else None,
                 "total_habits": len(all_habits),

@@ -53,20 +53,22 @@ class WeeklyAnalysisService:
         Returns:
             Tuple of (week_start_date, week_end_date)
         """
-        days_since_week_start = (target_date.weekday() - week_start_day + 7) % 7
+        # Convert week_start_day to Python weekday format (Monday=0)
+        # week_start_day: 0=Sunday, 1=Monday -> Python: 0=Monday, 1=Tuesday
+        python_week_start = (week_start_day - 1) % 7
+        days_since_week_start = (target_date.weekday() - python_week_start + 7) % 7
         week_start = target_date - timedelta(days=days_since_week_start)
         week_end = week_start + timedelta(days=6)
         return week_start, week_end
 
     async def get_weekly_stats(
-        self, user_id: str, target_date: date, week_start_day: Optional[int] = None
+        self, user_id: str, target_date: date
     ) -> WeeklyStats:
         """Calculate weekly statistics for habit completions by category.
 
         Args:
             user_id: User identifier
             target_date: Date within the week to analyze
-            week_start_day: Day of week when week starts (0=Sunday, 1=Monday, etc.) - if None, uses user's configured setting
 
         Returns:
             WeeklyStats object containing completion data
@@ -76,7 +78,6 @@ class WeeklyAnalysisService:
             "get_weekly_stats",
             user_id=user_id,
             target_date=target_date.isoformat(),
-            week_start_day=week_start_day,
         )
 
         try:
@@ -84,24 +85,12 @@ class WeeklyAnalysisService:
             user_config = await self.config_repo.get_config(user_id)
             if not user_config:
                 log_service_completion(self.logger, context, habits_found=0)
-                # Use default week start day if no user config
-                effective_week_start_day = (
-                    week_start_day if week_start_day is not None else 1
-                )
-                week_start, week_end = self.get_week_boundaries(
-                    target_date, effective_week_start_day
-                )
+                # Always use Monday as week start (ISO 8601 standard)
+                week_start, week_end = self.get_week_boundaries(target_date, 1)
                 return WeeklyStats(week_start, week_end, {})
 
-            # Use user's configured week start day if not overridden
-            effective_week_start_day = (
-                week_start_day
-                if week_start_day is not None
-                else user_config.week_start_day
-            )
-            week_start, week_end = self.get_week_boundaries(
-                target_date, effective_week_start_day
-            )
+            # Always use Monday as week start (ISO 8601 standard)
+            week_start, week_end = self.get_week_boundaries(target_date, 1)
 
             # Create mapping of habit_id to habit for weekly tracking
             habits_with_targets = {}
@@ -163,9 +152,6 @@ class WeeklyAnalysisService:
                 )
                 return True  # No config means week is always successful
 
-            # Use the user's configured week start day
-            week_start_day = user_config.week_start_day
-
             # If weekly tracking is disabled, week is always successful
             weekly_config = user_config.weekly_success_config
             if weekly_config and not weekly_config.enabled:
@@ -174,8 +160,8 @@ class WeeklyAnalysisService:
                 )
                 return True
 
-            # Get week boundaries
-            week_start, week_end = self.get_week_boundaries(target_date, week_start_day)
+            # Get week boundaries - always use Monday as week start (ISO 8601 standard)
+            week_start, week_end = self.get_week_boundaries(target_date, 1)
 
             # Get habits that contribute to weekly success
             habits_with_targets = [
@@ -262,11 +248,8 @@ class WeeklyAnalysisService:
                 log_service_completion(self.logger, context, habits=0)
                 return progress
 
-            # Use the user's configured week start day
-            week_start_day = user_config.week_start_day
-
-            # Get week boundaries
-            week_start, week_end = self.get_week_boundaries(target_date, week_start_day)
+            # Get week boundaries - always use Monday as week start (ISO 8601 standard)
+            week_start, week_end = self.get_week_boundaries(target_date, 1)
 
             # Get all days in the week
             days_in_week = await self.day_repo.get_days_range(week_start, week_end)

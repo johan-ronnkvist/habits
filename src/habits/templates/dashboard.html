@@ -10,7 +10,7 @@
             <a href="/{{ navigation.prev_url }}" 
                class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
                 <i class="fas fa-chevron-left mr-2"></i>
-                {{ navigation.prev_date.strftime('%b %d') }}
+                {{ navigation.prev_date.strftime('%b %d, %Y') }}
             </a>
             
             <!-- Current Date -->
@@ -24,7 +24,7 @@
             {% if navigation.can_go_next %}
                 <a href="/{{ navigation.next_url }}" 
                    class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
-                    {{ navigation.next_date.strftime('%b %d') }}
+                    {{ navigation.next_date.strftime('%b %d, %Y') }}
                     <i class="fas fa-chevron-right ml-2"></i>
                 </a>
             {% endif %}
@@ -55,13 +55,15 @@
             {% for day in weekly_overview.week_days %}
             <div class="text-center">
                 <!-- Day Name -->
-                <div class="text-xs font-medium text-gray-500 mb-2">{{ day.day_name }}</div>
+                <div class="text-xs font-medium mb-2 {% if day.is_selected %}font-bold text-indigo-600{% else %}text-gray-500{% endif %}">{{ day.day_name }}</div>
                 
                 <!-- Day Button/Circle -->
                 {% if day.can_navigate %}
                     <a href="/{{ day.url }}" 
                        class="block w-12 h-12 mx-auto rounded-full border-2 flex items-center justify-center text-sm font-medium transition-all duration-200 hover:scale-105
-                              {% if day.is_today %}
+                              {% if day.is_selected %}
+                                  border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-300 font-bold
+                              {% elif day.is_today %}
                                   border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200 hover:bg-blue-100
                               {% else %}
                                   border-gray-300 bg-white text-gray-700 hover:bg-gray-50
@@ -69,7 +71,12 @@
                         {{ day.day_number }}
                     </a>
                 {% else %}
-                    <div class="w-12 h-12 mx-auto rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-sm font-medium text-gray-300">
+                    <div class="w-12 h-12 mx-auto rounded-full border-2 flex items-center justify-center text-sm font-medium
+                              {% if day.is_selected %}
+                                  border-indigo-500 bg-indigo-50 text-indigo-700 ring-2 ring-indigo-300 font-bold
+                              {% else %}
+                                  border-gray-200 bg-gray-50 text-gray-300
+                              {% endif %}">
                         {{ day.day_number }}
                     </div>
                 {% endif %}
@@ -204,30 +211,6 @@
                             <h4 class="text-lg font-semibold text-gray-900 mb-1">{{ habit.title }}</h4>
                             <p class="text-sm text-gray-600">{{ habit.description }}</p>
                         </div>
-                    </div>
-                    
-                    <!-- Status Icon -->
-                    <div class="ml-3">
-                        {% if habit.id in habit_status %}
-                            {% set status = habit_status[habit.id] %}
-                            {% if status.completed %}
-                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-check text-green-600"></i>
-                                </div>
-                            {% elif status.failed %}
-                                <div class="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-times text-red-600"></i>
-                                </div>
-                            {% else %}
-                                <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                    <i class="far fa-circle text-gray-400"></i>
-                                </div>
-                            {% endif %}
-                        {% else %}
-                            <div class="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                                <i class="far fa-circle text-gray-400"></i>
-                            </div>
-                        {% endif %}
                     </div>
                 </div>
                 

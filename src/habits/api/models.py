@@ -11,6 +11,9 @@ class HabitCreate(BaseModel):
     description: str = Field(
         ..., min_length=1, max_length=500, description="Habit description"
     )
+    icon: Optional[str] = Field(
+        None, max_length=50, description="Font Awesome icon class for the habit"
+    )
     weekly_target: Optional[int] = Field(
         None,
         ge=1,
@@ -34,6 +37,9 @@ class HabitUpdate(BaseModel):
     description: str = Field(
         ..., min_length=1, max_length=500, description="Habit description"
     )
+    icon: Optional[str] = Field(
+        None, max_length=50, description="Font Awesome icon class for the habit"
+    )
     weekly_target: Optional[int] = Field(
         None,
         ge=1,
@@ -53,12 +59,7 @@ class HabitUpdate(BaseModel):
 class UserSettingsUpdate(BaseModel):
     """Request model for updating user settings."""
 
-    week_start_day: int = Field(
-        ...,
-        ge=0,
-        le=6,
-        description="Day of week when week starts (0=Sunday, 1=Monday, 2=Tuesday, etc.)",
-    )
+    pass
 
 
 class HabitEntryCreate(BaseModel):
@@ -148,12 +149,6 @@ class WeeklyConfigCreate(BaseModel):
     goals: List[WeeklyGoalCreate] = Field(
         default_factory=list,
         description="List of weekly goals that define success criteria",
-    )
-    week_start_day: int = Field(
-        default=1,
-        ge=0,
-        le=6,
-        description="Day of week when week starts (0=Sunday, 1=Monday, etc.)",
     )
     enabled: bool = Field(
         default=True, description="Whether weekly success tracking is enabled"

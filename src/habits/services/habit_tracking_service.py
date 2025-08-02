@@ -614,47 +614,6 @@ class HabitTrackingService:
             log_service_completion(self.logger, context, success=False, error=e)
             raise
 
-    async def update_user_settings(self, user_id: str, week_start_day: int) -> bool:
-        """Update user settings.
-
-        Args:
-            user_id: The user identifier
-            week_start_day: Day of week when week starts (0=Sunday, 1=Monday, etc.)
-
-        Returns:
-            True if settings were updated successfully
-        """
-        context = log_service_action(
-            self.logger,
-            "update_user_settings",
-            user_id=user_id,
-            week_start_day=week_start_day,
-        )
-
-        try:
-            config = await self.config_repo.get_config(user_id)
-            if not config:
-                # Create new config if it doesn't exist
-                config = UserConfig(
-                    user_id=user_id, habits=[], weekly_success_config=None
-                )
-
-            # Update the week start day
-            config.week_start_day = week_start_day
-
-            await self.config_repo.save_config(config)
-
-            log_service_completion(
-                self.logger,
-                context,
-                success=True,
-                settings_updated=True,
-            )
-            return True
-
-        except Exception as e:
-            log_service_completion(self.logger, context, success=False, error=e)
-            raise
 
     async def get_daily_summary(self, target_date: date) -> Optional[dict]:
         """Get a summary of habit completion for a specific day."""

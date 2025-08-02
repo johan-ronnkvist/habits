@@ -20,6 +20,7 @@ async def create_habit_form(
     title: str = Form(...),
     description: str = Form(...),
     weekly_target: str = Form(None),
+    icon: str = Form(None),
     service: HabitTrackingService = Depends(get_habit_service),
 ):
     """Handle habit creation from form."""
@@ -27,9 +28,13 @@ async def create_habit_form(
     weekly_target_value = (
         int(weekly_target) if weekly_target and weekly_target.strip() else None
     )
+    icon_value = icon if icon and icon.strip() else None
 
     new_habit = Habit(
-        title=title, description=description, weekly_target=weekly_target_value
+        title=title,
+        description=description,
+        weekly_target=weekly_target_value,
+        icon=icon_value,
     )
     await service.add_habit_to_user(DEFAULT_USER_ID, new_habit)
     return RedirectResponse(url="/habits", status_code=303)
@@ -42,6 +47,7 @@ async def update_habit_form(
     title: str = Form(...),
     description: str = Form(...),
     weekly_target: str = Form(None),
+    icon: str = Form(None),
     service: HabitTrackingService = Depends(get_habit_service),
 ):
     """Handle habit updates from form."""
@@ -49,9 +55,13 @@ async def update_habit_form(
     weekly_target_value = (
         int(weekly_target) if weekly_target and weekly_target.strip() else None
     )
+    icon_value = icon if icon and icon.strip() else None
 
     updated_habit = Habit(
-        title=title, description=description, weekly_target=weekly_target_value
+        title=title,
+        description=description,
+        weekly_target=weekly_target_value,
+        icon=icon_value,
     )
 
     await service.update_habit_for_user(DEFAULT_USER_ID, habit_id, updated_habit)
@@ -67,15 +77,7 @@ async def delete_habit_form(
     return RedirectResponse(url="/habits", status_code=303)
 
 
-@router.post("/settings/update")
-async def update_settings_form(
-    request: Request,
-    week_start_day: int = Form(...),
-    service: HabitTrackingService = Depends(get_habit_service),
-):
-    """Handle user settings update from form."""
-    await service.update_user_settings(DEFAULT_USER_ID, week_start_day)
-    return RedirectResponse(url="/settings", status_code=303)
+# Settings update form removed - no configurable settings remain
 
 
 @router.post("/entries/record")
