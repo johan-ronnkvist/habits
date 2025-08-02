@@ -15,28 +15,9 @@
             
             <!-- Current Date -->
             <div class="text-center">
-                {% if navigation.is_today %}
-                    Good {{ 'morning' if target_date.strftime('%H')|int < 12 else 'afternoon' if target_date.strftime('%H')|int < 18 else 'evening' }}!
-                {% endif %}
                 <div class="text-xl font-bold text-gray-900">
                     {{ target_date.strftime('%A, %B %d, %Y') }}
                 </div>
-                {% if navigation.is_today %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        <i class="fas fa-circle text-green-400 mr-1" style="font-size: 8px;"></i>
-                        Today
-                    </span>
-                {% elif navigation.is_future %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        <i class="fas fa-clock mr-1"></i>
-                        Future
-                    </span>
-                {% else %}
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                        <i class="fas fa-history mr-1"></i>
-                        Past
-                    </span>
-                {% endif %}
             </div>
             
             <!-- Next Day -->
@@ -46,11 +27,6 @@
                     {{ navigation.next_date.strftime('%b %d') }}
                     <i class="fas fa-chevron-right ml-2"></i>
                 </a>
-            {% else %}
-                <div class="inline-flex items-center px-3 py-2 border border-gray-200 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed">
-                    <i class="fas fa-ban mr-2"></i>
-                    Future
-                </div>
             {% endif %}
         </div>
         
@@ -105,19 +81,19 @@
                     <div class="mt-1 flex justify-center flex-wrap gap-1 max-w-full">
                         {% for habit_status in day.habit_statuses %}
                             {% if habit_status.status != 'not_recorded' %}
-                                <div class="flex items-center justify-center w-3 h-3 rounded-sm text-xs leading-none
+                                <div class="flex items-center justify-center w-6 h-6 rounded-lg text-xs leading-none
                                         {% if habit_status.status == 'completed' %}
-                                            bg-green-500 text-white
+                                            bg-green-100 text-green-600
                                         {% elif habit_status.status == 'failed' %}
-                                            bg-red-500 text-white
+                                            bg-red-100 text-red-600
                                         {% else %}
-                                            bg-gray-400 text-white
+                                            bg-gray-100 text-gray-400
                                         {% endif %}"
                                      title="{{ habit_status.habit_title }} - {{ habit_status.status|title }}">
                                     {% if habit_status.habit_icon %}
-                                        <i class="{{ habit_status.habit_icon }}" style="font-size: 8px;"></i>
+                                        <i class="{{ habit_status.habit_icon }}" style="font-size: 14px;"></i>
                                     {% else %}
-                                        <i class="fas fa-circle" style="font-size: 6px;"></i>
+                                        <i class="fas fa-circle" style="font-size: 12px;"></i>
                                     {% endif %}
                                 </div>
                             {% endif %}
@@ -133,16 +109,8 @@
         <div class="mt-6 pt-6 border-t border-gray-200">
             <div class="flex items-center justify-between text-sm mb-4">
                 <span class="text-gray-600">Weekly Goals</span>
-                <span class="font-medium text-gray-900">
-                    ({{ "%.0f"|format(weekly_overview.weekly_completion_rate * 100) }}%)
-                </span>
             </div>
-            
-            <!-- Weekly Goals Progress Bar -->
-            <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500" 
-                     style="width: {{ (weekly_overview.weekly_completion_rate * 100)|round }}%"></div>
-            </div>
+
             
             <!-- Individual Habit Progress -->
             {% if weekly_overview.weekly_progress %}
@@ -153,9 +121,13 @@
                         <!-- Habit Icon -->
                         <div class="flex-shrink-0">
                             {% if progress.habit_icon %}
-                                <i class="{{ progress.habit_icon }} text-gray-600 text-sm"></i>
+                                <div class="w-8 h-8 bg-primary-50 rounded-lg flex items-center justify-center">
+                                    <i class="{{ progress.habit_icon }} text-primary-600 text-sm"></i>
+                                </div>
                             {% else %}
-                                <i class="fas fa-bullseye text-gray-600 text-sm"></i>
+                                <div class="w-8 h-8 bg-gray-50 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-bullseye text-gray-400 text-sm"></i>
+                                </div>
                             {% endif %}
                         </div>
                         <span class="text-gray-600 truncate">{{ progress.habit_title }}</span>
@@ -163,16 +135,16 @@
                     <div class="flex items-center space-x-2">
                         <div class="flex space-x-1">
                             {% for i in range(progress.target) %}
-                                <div class="flex items-center justify-center w-4 h-4 rounded-sm
+                                <div class="flex items-center justify-center w-5 h-5 rounded-lg
                                         {% if i < progress.current %}
-                                            bg-green-500 text-white
+                                            bg-green-100 text-green-600
                                         {% else %}
-                                            bg-gray-200 text-gray-400
+                                            bg-gray-100 text-gray-400
                                         {% endif %}">
                                     {% if progress.habit_icon %}
-                                        <i class="{{ progress.habit_icon }}" style="font-size: 10px;"></i>
+                                        <i class="{{ progress.habit_icon }}" style="font-size: 12px;"></i>
                                     {% else %}
-                                        <i class="fas fa-circle" style="font-size: 8px;"></i>
+                                        <i class="fas fa-circle" style="font-size: 10px;"></i>
                                     {% endif %}
                                 </div>
                             {% endfor %}
@@ -473,6 +445,7 @@
         </div>
     </div>
 </div>
+
 
 <script>
 // Alpine.js Entry Modal Component
