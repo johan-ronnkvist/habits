@@ -7,10 +7,10 @@
 {% block content %}
 <div class="px-4 py-6 sm:px-0">
     <!-- Add New Habit Form -->
-    <div class="bg-white shadow sm:rounded-lg mb-8">
+    <div x-data="habitForm()" class="bg-white shadow sm:rounded-lg mb-8">
         <div class="px-4 py-5 sm:p-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Add New Habit</h3>
-            <form method="post" action="/habits/create" class="space-y-4">
+            <form method="post" action="/habits/create" @submit="handleSubmit" class="space-y-4">
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label for="title" class="block text-sm font-medium text-gray-700">
@@ -19,6 +19,7 @@
                         <input type="text" 
                                name="title" 
                                id="title" 
+                               x-model="form.title"
                                required
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                placeholder="e.g., Morning Exercise">
@@ -30,6 +31,7 @@
                         </label>
                         <select name="weekly_target" 
                                 id="weekly_target"
+                                x-model="form.weeklyTarget"
                                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                             <option value="">-- No Weekly Target --</option>
                             <option value="1">1 time per week</option>
@@ -49,6 +51,7 @@
                     </label>
                     <textarea name="description" 
                               id="description" 
+                              x-model="form.description"
                               required
                               rows="3"
                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
@@ -57,8 +60,14 @@
                 
                 <div class="flex justify-end">
                     <button type="submit" 
-                            class="btn inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        <i class="fas fa-plus mr-2"></i>
+                            :disabled="loading"
+                            class="btn inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50">
+                        <template x-if="loading">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                        </template>
+                        <template x-if="!loading">
+                            <i class="fas fa-plus mr-2"></i>
+                        </template>
                         Add Habit
                     </button>
                 </div>
@@ -158,8 +167,24 @@
 </div>
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+<div x-data="deleteModal()" 
+     x-show="show" 
+     @keydown.escape.window="hide()"
+     @click.self="hide()"
+     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
@@ -168,14 +193,14 @@
                     </div>
                     <h3 class="text-lg font-medium text-gray-900">Delete Habit</h3>
                 </div>
-                <button onclick="hideDeleteModal()" class="text-gray-400 hover:text-gray-600">
+                <button @click="hide()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
             <div class="mb-6">
                 <p class="text-sm text-gray-500">
-                    Are you sure you want to delete the habit "<span id="deleteHabitName" class="font-medium text-gray-900"></span>"?
+                    Are you sure you want to delete the habit "<span x-text="habitTitle" class="font-medium text-gray-900"></span>"?
                 </p>
                 <p class="text-xs text-red-600 mt-2">
                     <i class="fas fa-warning mr-1"></i>
@@ -185,14 +210,21 @@
             
             <div class="flex justify-end space-x-3">
                 <button type="button" 
-                        onclick="hideDeleteModal()"
+                        @click="hide()"
                         class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                     Cancel
                 </button>
-                <form method="post" id="deleteForm" class="inline">
+                <form method="post" :action="`/habits/delete/${encodeURIComponent(habitTitle)}`" class="inline">
                     <button type="submit" 
-                            class="btn px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                        <i class="fas fa-trash mr-1"></i>
+                            :disabled="loading"
+                            @click="loading = true"
+                            class="btn px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50">
+                        <template x-if="loading">
+                            <i class="fas fa-spinner fa-spin mr-1"></i>
+                        </template>
+                        <template x-if="!loading">
+                            <i class="fas fa-trash mr-1"></i>
+                        </template>
                         Delete Habit
                     </button>
                 </form>
@@ -202,17 +234,33 @@
 </div>
 
 <!-- Edit Habit Modal -->
-<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+<div x-data="editModal()" 
+     x-show="show" 
+     @keydown.escape.window="hide()"
+     @click.self="hide()"
+     class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50"
+     x-transition:enter="transition ease-out duration-300"
+     x-transition:enter-start="opacity-0"
+     x-transition:enter-end="opacity-100"
+     x-transition:leave="transition ease-in duration-200"
+     x-transition:leave-start="opacity-100"
+     x-transition:leave-end="opacity-0">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white"
+         x-transition:enter="transition ease-out duration-300 transform"
+         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave="transition ease-in duration-200 transform"
+         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
         <div class="mt-3">
             <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-medium text-gray-900">Edit Habit</h3>
-                <button onclick="hideEditModal()" class="text-gray-400 hover:text-gray-600">
+                <button @click="hide()" class="text-gray-400 hover:text-gray-600">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
             
-            <form method="post" id="editForm" class="space-y-4">
+            <form method="post" :action="`/habits/update/${encodeURIComponent(habitId)}`" @submit="handleSubmit" class="space-y-4">
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div>
                         <label for="editTitle" class="block text-sm font-medium text-gray-700">
@@ -220,7 +268,7 @@
                         </label>
                         <input type="text" 
                                name="title" 
-                               id="editTitle" 
+                               x-model="title"
                                required
                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                placeholder="e.g., Morning Exercise">
@@ -231,7 +279,7 @@
                             Weekly Target <span class="text-gray-400 text-xs">(Optional)</span>
                         </label>
                         <select name="weekly_target" 
-                                id="editWeeklyTarget"
+                                x-model="weeklyTarget"
                                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                             <option value="">-- No Weekly Target --</option>
                             <option value="1">1 time per week</option>
@@ -250,7 +298,7 @@
                         Description
                     </label>
                     <textarea name="description" 
-                              id="editDescription" 
+                              x-model="description"
                               required
                               rows="3"
                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
@@ -259,13 +307,19 @@
                 
                 <div class="flex justify-end space-x-3">
                     <button type="button" 
-                            onclick="hideEditModal()"
+                            @click="hide()"
                             class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
                         Cancel
                     </button>
                     <button type="submit" 
-                            class="btn px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-                        <i class="fas fa-save mr-1"></i>
+                            :disabled="loading"
+                            class="btn px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50">
+                        <template x-if="loading">
+                            <i class="fas fa-spinner fa-spin mr-1"></i>
+                        </template>
+                        <template x-if="!loading">
+                            <i class="fas fa-save mr-1"></i>
+                        </template>
                         Save Changes
                     </button>
                 </div>
@@ -275,63 +329,128 @@
 </div>
 
 <script>
-function showDeleteModal(habitTitle) {
-    document.getElementById('deleteHabitName').textContent = habitTitle;
-    document.getElementById('deleteForm').action = `/habits/delete/${encodeURIComponent(habitTitle)}`;
-    document.getElementById('deleteModal').classList.remove('hidden');
+// Alpine.js Habit Form Component
+function habitForm() {
+    return {
+        loading: false,
+        form: {
+            title: '',
+            description: '',
+            weeklyTarget: ''
+        },
+        
+        async handleSubmit(event) {
+            event.preventDefault();
+            this.loading = true;
+            
+            try {
+                await submitFormAjax(event.target, {
+                    successMessage: 'Habit created successfully!',
+                    onSuccess: () => {
+                        // Reset form
+                        this.form = {
+                            title: '',
+                            description: '',
+                            weeklyTarget: ''
+                        };
+                        
+                        // Optionally refresh the page to show new habit
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 1000);
+                    }
+                });
+            } finally {
+                this.loading = false;
+            }
+        }
+    }
 }
 
-function hideDeleteModal() {
-    document.getElementById('deleteModal').classList.add('hidden');
+// Alpine.js Delete Modal Component
+function deleteModal() {
+    return {
+        show: false,
+        loading: false,
+        habitTitle: '',
+        
+        showModal(habitTitle) {
+            this.habitTitle = habitTitle;
+            this.show = true;
+        },
+        
+        hide() {
+            this.show = false;
+            this.reset();
+        },
+        
+        reset() {
+            this.habitTitle = '';
+            this.loading = false;
+        }
+    }
+}
+
+// Alpine.js Edit Modal Component  
+function editModal() {
+    return {
+        show: false,
+        loading: false,
+        habitId: '',
+        title: '',
+        description: '',
+        weeklyTarget: '',
+        
+        showModal(habitId, habitTitle, habitDescription, weeklyTarget) {
+            this.habitId = habitId;
+            this.title = habitTitle;
+            this.description = habitDescription;
+            this.weeklyTarget = weeklyTarget || '';
+            this.show = true;
+            
+            // Focus on title input after modal opens
+            this.$nextTick(() => {
+                const titleField = this.$el.querySelector('input[name="title"]');
+                if (titleField) {
+                    titleField.focus();
+                }
+            });
+        },
+        
+        hide() {
+            this.show = false;
+            this.reset();
+        },
+        
+        reset() {
+            this.habitId = '';
+            this.title = '';
+            this.description = '';
+            this.weeklyTarget = '';
+            this.loading = false;
+        },
+        
+        handleSubmit(event) {
+            this.loading = true;
+            // Let form submit normally
+        }
+    }
+}
+
+// Global functions for backward compatibility
+function showDeleteModal(habitTitle) {
+    const modalEl = document.querySelector('[x-data*="deleteModal"]');
+    if (modalEl && modalEl._x_dataStack) {
+        modalEl._x_dataStack[0].showModal(habitTitle);
+    }
 }
 
 function showEditModal(habitId, habitTitle, habitDescription, weeklyTarget) {
-    // Set form action
-    document.getElementById('editForm').action = `/habits/update/${encodeURIComponent(habitId)}`;
-    
-    // Populate form fields
-    document.getElementById('editTitle').value = habitTitle;
-    document.getElementById('editDescription').value = habitDescription;
-    
-    // Set weekly target selection
-    const weeklyTargetSelect = document.getElementById('editWeeklyTarget');
-    weeklyTargetSelect.value = weeklyTarget || '';
-    
-    // Show modal
-    document.getElementById('editModal').classList.remove('hidden');
-    
-    // Focus on title input
-    document.getElementById('editTitle').focus();
+    const modalEl = document.querySelector('[x-data*="editModal"]');
+    if (modalEl && modalEl._x_dataStack) {
+        modalEl._x_dataStack[0].showModal(habitId, habitTitle, habitDescription, weeklyTarget);
+    }
 }
-
-function hideEditModal() {
-    document.getElementById('editModal').classList.add('hidden');
-}
-
-// Close modal when clicking outside
-document.getElementById('deleteModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hideDeleteModal();
-    }
-});
-
-document.getElementById('editModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        hideEditModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        if (!document.getElementById('deleteModal').classList.contains('hidden')) {
-            hideDeleteModal();
-        }
-        if (!document.getElementById('editModal').classList.contains('hidden')) {
-            hideEditModal();
-        }
-    }
-});
 
 // Auto-focus on title input when page loads
 document.addEventListener('DOMContentLoaded', function() {
