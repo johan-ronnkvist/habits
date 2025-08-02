@@ -1,7 +1,6 @@
 """Web routes for dashboard and date navigation."""
 
 from datetime import date, timedelta
-from typing import Any, Dict
 from pathlib import Path
 from fastapi import APIRouter, Request, HTTPException, Depends
 from fastapi.responses import HTMLResponse
@@ -9,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..api.dependencies import get_habit_service, DEFAULT_USER_ID
 from ..services.habit_tracking_service import HabitTrackingService
+from ..services.weekly_analysis_service import WeeklyAnalysisService
 from ..utils.date_parser import (
     parse_url_date,
     get_navigation_dates,
@@ -26,15 +26,30 @@ templates = Jinja2Templates(directory=BASE_DIR / "templates")
 router = APIRouter(tags=["dashboard"])
 
 
-async def get_weekly_overview(
-    target_date: date, service: HabitTrackingService
-) -> dict:
-    """Get weekly overview data for the dashboard."""
-    # Get start of week (Monday) for the target date
-    days_since_monday = target_date.weekday()
-    week_start = target_date - timedelta(days=days_since_monday)
+async def get_weekly_overview(target_date: date, service: HabitTrackingService) -> dict:
+    """Get weekly overview data showing daily progress in the context of weekly goals."""
+    # Get user's week start day
+    user_config = await service.config_repo.get_config(DEFAULT_USER_ID)
+    week_start_day = user_config.week_start_day if user_config else 1
 
-    # Generate 7 days of the week
+    # Calculate week boundaries
+    weekly_service = WeeklyAnalysisService(service.day_repo, service.config_repo)
+    week_start, week_end = weekly_service.get_week_boundaries(
+        target_date, week_start_day
+    )
+
+    # Get weekly goal progress
+    weekly_progress = await weekly_service.get_weekly_goal_progress(
+        DEFAULT_USER_ID, target_date
+    )
+
+    # Get all habits to understand which ones don't have weekly targets
+    all_habits = await service.get_user_habits(DEFAULT_USER_ID)
+    habits_with_targets = [h for h in all_habits if h.contributes_to_weekly_success()]
+    habits_without_targets = [
+        h for h in all_habits if not h.contributes_to_weekly_success()
+    ]
+
     week_days = []
     today = date.today()
 
@@ -48,28 +63,47 @@ async def get_weekly_overview(
         day_data = await service.day_repo.get_day(day_date)
         habit_entries = day_data.habit_entries if day_data else []
 
-        # Calculate completion stats
-        total_habits = len(await service.get_user_habits(DEFAULT_USER_ID))
-        completed_habits = sum(1 for entry in habit_entries if entry.is_completed)
-        failed_habits = sum(1 for entry in habit_entries if entry.is_failed)
+        # Create lookup of habit entries by habit_id
+        entries_by_habit = {entry.habit_id: entry for entry in habit_entries}
 
-        completion_rate = completed_habits / total_habits if total_habits > 0 else 0
+        # Build detailed habit status for this day
+        habit_statuses = []
+        for habit in all_habits:
+            entry = entries_by_habit.get(habit.id)
+            if entry:
+                if entry.is_completed:
+                    status = "completed"
+                elif entry.is_failed:
+                    status = "failed"
+                else:
+                    status = "recorded"  # Recorded but neither completed nor failed
+            else:
+                status = "not_recorded"
 
-        # Determine status
-        if is_future:
-            status = "future"
-        elif total_habits == 0:
-            status = "no-habits"
-        elif completed_habits == total_habits:
-            status = "perfect"
-        elif completion_rate >= 0.8:
-            status = "great"
-        elif completion_rate >= 0.5:
-            status = "good"
-        elif completed_habits > 0:
-            status = "partial"
-        else:
-            status = "none"
+            habit_statuses.append(
+                {
+                    "habit_id": habit.id,
+                    "habit_title": habit.title,
+                    "habit_icon": habit.icon,
+                    "status": status,
+                    "has_weekly_target": habit.contributes_to_weekly_success(),
+                }
+            )
+
+        # Count completions by category
+        completed_with_targets = sum(
+            1
+            for entry in habit_entries
+            if entry.is_completed
+            and any(h.id == entry.habit_id for h in habits_with_targets)
+        )
+        completed_without_targets = sum(
+            1
+            for entry in habit_entries
+            if entry.is_completed
+            and any(h.id == entry.habit_id for h in habits_without_targets)
+        )
+        total_completed = completed_with_targets + completed_without_targets
 
         week_days.append(
             {
@@ -81,50 +115,60 @@ async def get_weekly_overview(
                 "is_future": is_future,
                 "can_navigate": is_past or is_today,
                 "url": format_date_for_url(day_date) if (is_past or is_today) else None,
-                "total_habits": total_habits,
-                "completed_habits": completed_habits,
-                "failed_habits": failed_habits,
-                "completion_rate": completion_rate,
-                "status": status,
+                "total_habits": len(all_habits),
+                "completed_habits": total_completed,
+                "completed_with_targets": completed_with_targets,
+                "completed_without_targets": completed_without_targets,
+                "habit_statuses": habit_statuses,
             }
         )
 
-    # Calculate weekly stats
-    total_possible = 0
-    total_completed = 0
-    for day in week_days:
-        if day["is_past"] or day["is_today"]:
-            total_possible += int(day["total_habits"])
-            total_completed += int(day["completed_habits"])
-    weekly_completion_rate = (
-        total_completed / total_possible if total_possible > 0 else 0
-    )
+    # Calculate weekly success based on weekly targets and enhance with habit icons
+    weekly_success_achieved = 0
+    total_weekly_targets = len(weekly_progress)
 
-    # Determine weekly status
-    if weekly_completion_rate >= 0.9:
-        weekly_status = "excellent"
-    elif weekly_completion_rate >= 0.8:
-        weekly_status = "great"
-    elif weekly_completion_rate >= 0.6:
-        weekly_status = "good"
-    elif weekly_completion_rate >= 0.4:
-        weekly_status = "fair"
+    # Add habit icons to weekly progress data
+    for habit_id, progress in weekly_progress.items():
+        # Find the habit to get its icon
+        habit = next((h for h in habits_with_targets if h.id == habit_id), None)
+        if habit:
+            progress["habit_icon"] = habit.icon
+
+        if progress["current"] >= progress["target"]:
+            weekly_success_achieved += 1
+
+    # Determine overall weekly status based on weekly goal achievement
+    if total_weekly_targets == 0:
+        weekly_status = "no-targets"
+        weekly_completion_rate = 1.0  # Perfect if no weekly targets set
     else:
-        weekly_status = "needs-work"
+        weekly_completion_rate = weekly_success_achieved / total_weekly_targets
+        if weekly_completion_rate >= 1.0:
+            weekly_status = "excellent"
+        elif weekly_completion_rate >= 0.8:
+            weekly_status = "great"
+        elif weekly_completion_rate >= 0.6:
+            weekly_status = "good"
+        elif weekly_completion_rate >= 0.4:
+            weekly_status = "fair"
+        else:
+            weekly_status = "needs-work"
 
     return {
         "week_days": week_days,
         "week_start": week_start,
-        "total_possible": total_possible,
-        "total_completed": total_completed,
+        "week_end": week_end,
+        "weekly_progress": weekly_progress,
+        "weekly_success_achieved": weekly_success_achieved,
+        "total_weekly_targets": total_weekly_targets,
         "weekly_completion_rate": weekly_completion_rate,
         "weekly_status": weekly_status,
+        "habits_with_targets": len(habits_with_targets),
+        "habits_without_targets": len(habits_without_targets),
     }
 
 
-async def get_dashboard_data(
-    target_date: date, service: HabitTrackingService
-) -> dict:
+async def get_dashboard_data(target_date: date, service: HabitTrackingService) -> dict:
     """Get dashboard data for a specific date."""
     habits = await service.get_user_habits(DEFAULT_USER_ID)
     daily_summary = await service.get_daily_summary(target_date)
