@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Habits Tracker{% endblock %}
+
+{% block header %}Settings{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 sm:px-0">
+    <!-- Week Start Day Configuration -->
+    <div class="bg-white shadow sm:rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6">
+            <div class="sm:flex sm:items-start sm:justify-between">
+                <div>
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Week Start Day</h3>
+                    <div class="mt-2 max-w-xl text-sm text-gray-500">
+                        <p>Choose which day of the week should be considered the start of a new week for your habit tracking.</p>
+                        <p class="mt-1">
+                            <strong>Current setting:</strong> <span class="text-gray-900">{{ current_week_start_name }}</span>
+                        </p>
+                        <p class="mt-1 text-xs">
+                            <i class="fas fa-globe mr-1"></i>
+                            Your region's default is <strong>{{ default_week_start_name }}</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post" action="/settings/update" class="mt-5">
+                <div class="sm:flex sm:items-center">
+                    <div class="w-full sm:max-w-xs">
+                        <label for="week_start_day" class="sr-only">Week Start Day</label>
+                        <select name="week_start_day" 
+                                id="week_start_day"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                            {% for day_value, day_label in week_start_options.items() %}
+                                <option value="{{ day_value }}" 
+                                        {% if day_value == current_week_start_day %}selected{% endif %}>
+                                    {{ day_label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" 
+                            class="mt-3 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        <i class="fas fa-save mr-2"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Information Cards -->
+    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <!-- Week Start Day Info -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-calendar-week text-blue-400 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">About Week Start Days</h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <ul class="list-disc pl-5 space-y-1">
+                            <li><strong>Monday:</strong> ISO 8601 international standard, used in most of Europe, Asia, and other regions</li>
+                            <li><strong>Sunday:</strong> Traditional in North America, some Middle Eastern countries, and parts of Asia</li>
+                            <li>This setting affects weekly progress calculations and calendar displays</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regional Defaults Info -->
+        <div class="bg-green-50 border border-green-200 rounded-lg p-6">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-globe text-green-400 text-xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-green-800">Regional Defaults</h3>
+                    <div class="mt-2 text-sm text-green-700">
+                        <p>Your current regional default is <strong>{{ default_week_start_name }}</strong>.</p>
+                        <p class="mt-2">This is automatically detected based on your system's locale settings. You can override this setting at any time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="mt-8 flex justify-between">
+        <a href="/" 
+           class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Dashboard
+        </a>
+        
+        <a href="/habits" 
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <i class="fas fa-cog mr-2"></i>
+            Manage Habits
+        </a>
+    </div>
+</div>
+{% endblock %}

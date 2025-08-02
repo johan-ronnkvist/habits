@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 
 from .api.habits import router as habits_router
 from .api.entries import router as entries_router
+from .api.settings import router as settings_router
 from .web.dashboard import router as dashboard_router
 from .web.pages import router as pages_router
 from .web.forms import router as forms_router
@@ -40,6 +41,7 @@ app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
 # Include routers
 app.include_router(habits_router)
 app.include_router(entries_router)
+app.include_router(settings_router)
 app.include_router(pages_router)
 app.include_router(forms_router)
 app.include_router(

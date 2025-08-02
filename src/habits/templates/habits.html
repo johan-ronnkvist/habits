@@ -25,16 +25,34 @@
                     </div>
                     
                     <div>
-                        <label for="description" class="block text-sm font-medium text-gray-700">
-                            Description
+                        <label for="weekly_target" class="block text-sm font-medium text-gray-700">
+                            Weekly Target <span class="text-gray-400 text-xs">(Optional)</span>
                         </label>
-                        <input type="text" 
-                               name="description" 
-                               id="description" 
-                               required
-                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                               placeholder="e.g., 30 minutes of cardio or strength training">
+                        <select name="weekly_target" 
+                                id="weekly_target"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                            <option value="">-- No Weekly Target --</option>
+                            <option value="1">1 time per week</option>
+                            <option value="2">2 times per week</option>
+                            <option value="3">3 times per week</option>
+                            <option value="4">4 times per week</option>
+                            <option value="5">5 times per week</option>
+                            <option value="6">6 times per week</option>
+                            <option value="7">7 times per week (daily)</option>
+                        </select>
                     </div>
+                </div>
+                
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700">
+                        Description
+                    </label>
+                    <textarea name="description" 
+                              id="description" 
+                              required
+                              rows="3"
+                              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                              placeholder="e.g., 30 minutes of cardio or strength training. Be specific about what constitutes completion."></textarea>
                 </div>
                 
                 <div class="flex justify-end">
@@ -68,22 +86,31 @@
                                 <i class="fas fa-bullseye text-primary-500 text-lg"></i>
                             </div>
                             <div class="flex-1 min-w-0">
-                                <p class="text-sm font-medium text-gray-900">{{ habit.title }}</p>
+                                <div class="flex items-center space-x-2 mb-1">
+                                    <p class="text-sm font-medium text-gray-900">{{ habit.title }}</p>
+                                </div>
                                 <p class="text-sm text-gray-500 mt-1">{{ habit.description }}</p>
-                                <div class="mt-2 flex items-center text-xs text-gray-400">
-                                    <i class="fas fa-id-card mr-1"></i>
-                                    ID: {{ habit.id }}
+                                <div class="mt-2 flex items-center justify-between">
+                                    <div class="flex items-center text-xs text-gray-400">
+                                        <i class="fas fa-id-card mr-1"></i>
+                                        ID: {{ habit.id }}
+                                    </div>
+                                    {% if habit.weekly_target %}
+                                        <div class="flex items-center text-xs text-blue-600">
+                                            <i class="fas fa-target mr-1"></i>
+                                            Weekly Target: {{ habit.weekly_target }}/week
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
                     </div>
                     
                     <div class="flex items-center space-x-2">
-                        <!-- Edit Button (Future Enhancement) -->
+                        <!-- Edit Button -->
                         <button type="button" 
-                                disabled
-                                class="inline-flex items-center px-3 py-1 border border-gray-300 text-xs leading-4 font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed"
-                                title="Edit functionality coming soon">
+                                onclick="showEditModal('{{ habit.id }}', '{{ habit.title }}', '{{ habit.description }}', '{{ habit.weekly_target or '' }}')"
+                                class="inline-flex items-center px-3 py-1 border border-gray-300 text-xs leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                             <i class="fas fa-edit mr-1"></i>
                             Edit
                         </button>
@@ -174,6 +201,79 @@
     </div>
 </div>
 
+<!-- Edit Habit Modal -->
+<div id="editModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-10 mx-auto p-5 border w-full max-w-2xl shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Edit Habit</h3>
+                <button onclick="hideEditModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form method="post" id="editForm" class="space-y-4">
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div>
+                        <label for="editTitle" class="block text-sm font-medium text-gray-700">
+                            Habit Name
+                        </label>
+                        <input type="text" 
+                               name="title" 
+                               id="editTitle" 
+                               required
+                               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                               placeholder="e.g., Morning Exercise">
+                    </div>
+                    
+                    <div>
+                        <label for="editWeeklyTarget" class="block text-sm font-medium text-gray-700">
+                            Weekly Target <span class="text-gray-400 text-xs">(Optional)</span>
+                        </label>
+                        <select name="weekly_target" 
+                                id="editWeeklyTarget"
+                                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                            <option value="">-- No Weekly Target --</option>
+                            <option value="1">1 time per week</option>
+                            <option value="2">2 times per week</option>
+                            <option value="3">3 times per week</option>
+                            <option value="4">4 times per week</option>
+                            <option value="5">5 times per week</option>
+                            <option value="6">6 times per week</option>
+                            <option value="7">7 times per week (daily)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="editDescription" class="block text-sm font-medium text-gray-700">
+                        Description
+                    </label>
+                    <textarea name="description" 
+                              id="editDescription" 
+                              required
+                              rows="3"
+                              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                              placeholder="e.g., 30 minutes of cardio or strength training. Be specific about what constitutes completion."></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" 
+                            onclick="hideEditModal()"
+                            class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="btn px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+                        <i class="fas fa-save mr-1"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 function showDeleteModal(habitTitle) {
     document.getElementById('deleteHabitName').textContent = habitTitle;
@@ -185,6 +285,29 @@ function hideDeleteModal() {
     document.getElementById('deleteModal').classList.add('hidden');
 }
 
+function showEditModal(habitId, habitTitle, habitDescription, weeklyTarget) {
+    // Set form action
+    document.getElementById('editForm').action = `/habits/update/${encodeURIComponent(habitId)}`;
+    
+    // Populate form fields
+    document.getElementById('editTitle').value = habitTitle;
+    document.getElementById('editDescription').value = habitDescription;
+    
+    // Set weekly target selection
+    const weeklyTargetSelect = document.getElementById('editWeeklyTarget');
+    weeklyTargetSelect.value = weeklyTarget || '';
+    
+    // Show modal
+    document.getElementById('editModal').classList.remove('hidden');
+    
+    // Focus on title input
+    document.getElementById('editTitle').focus();
+}
+
+function hideEditModal() {
+    document.getElementById('editModal').classList.add('hidden');
+}
+
 // Close modal when clicking outside
 document.getElementById('deleteModal').addEventListener('click', function(e) {
     if (e.target === this) {
@@ -192,10 +315,21 @@ document.getElementById('deleteModal').addEventListener('click', function(e) {
     }
 });
 
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideEditModal();
+    }
+});
+
 // Close modal with Escape key
 document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && !document.getElementById('deleteModal').classList.contains('hidden')) {
-        hideDeleteModal();
+    if (e.key === 'Escape') {
+        if (!document.getElementById('deleteModal').classList.contains('hidden')) {
+            hideDeleteModal();
+        }
+        if (!document.getElementById('editModal').classList.contains('hidden')) {
+            hideEditModal();
+        }
     }
 });
 

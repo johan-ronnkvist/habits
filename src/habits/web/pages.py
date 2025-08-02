@@ -9,6 +9,11 @@ from fastapi.templating import Jinja2Templates
 
 from ..api.dependencies import get_habit_service, DEFAULT_USER_ID
 from ..services.habit_tracking_service import HabitTrackingService
+from ..utils.region_config import (
+    get_available_week_start_options,
+    get_default_week_start_day,
+    get_week_start_day_display_name,
+)
 
 # Setup templates
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -94,5 +99,35 @@ async def progress_page(
             "progress_days": progress_days,
             "calendar_data": calendar_data,
             "date_range": {"start": start_date, "end": today},
+        },
+    )
+
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(
+    request: Request, service: HabitTrackingService = Depends(get_habit_service)
+):
+    """Display user settings page."""
+    # Get current user settings
+    config = await service.config_repo.get_config(DEFAULT_USER_ID)
+
+    if config:
+        current_week_start_day = config.week_start_day
+    else:
+        current_week_start_day = get_default_week_start_day()
+
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            "current_week_start_day": current_week_start_day,
+            "current_week_start_name": get_week_start_day_display_name(
+                current_week_start_day
+            ),
+            "week_start_options": get_available_week_start_options(),
+            "default_week_start_day": get_default_week_start_day(),
+            "default_week_start_name": get_week_start_day_display_name(
+                get_default_week_start_day()
+            ),
         },
     )

@@ -336,6 +336,58 @@ class HabitTrackingService:
             log_service_completion(self.logger, context, success=False, error=e)
             raise
 
+    async def delete_habit_entry(self, target_date: date, habit_id: str) -> bool:
+        """Delete a habit entry for a specific date and habit.
+
+        Args:
+            target_date: The date of the entry to delete
+            habit_id: The ID of the habit
+
+        Returns:
+            True if entry was deleted, False if no entry was found
+        """
+        context = log_service_action(
+            self.logger,
+            "delete_habit_entry",
+            target_date=target_date.isoformat(),
+            habit_id=habit_id,
+        )
+
+        try:
+            day = await self.day_repo.get_day(target_date)
+            if day is None:
+                log_service_completion(
+                    self.logger, context, deleted=False, reason="no_day_data"
+                )
+                return False
+
+            # Find and remove the habit entry
+            original_count = len(day.habit_entries)
+            day.habit_entries = [
+                entry for entry in day.habit_entries if entry.habit_id != habit_id
+            ]
+            deleted = len(day.habit_entries) < original_count
+
+            if deleted:
+                await self.day_repo.save_day(day)
+                log_service_completion(
+                    self.logger,
+                    context,
+                    deleted=True,
+                    entries_before=original_count,
+                    entries_after=len(day.habit_entries),
+                )
+            else:
+                log_service_completion(
+                    self.logger, context, deleted=False, reason="no_habit_entry"
+                )
+
+            return deleted
+
+        except Exception as e:
+            log_service_completion(self.logger, context, success=False, error=e)
+            raise
+
     async def get_habit_progress(self, start_date: date, end_date: date) -> List[Day]:
         """Get habit progress for a date range."""
         context = log_service_action(
@@ -431,7 +483,9 @@ class HabitTrackingService:
             created_new_config = config is None
 
             if config is None:
-                config = UserConfig(user_id=user_id, habits=[])
+                config = UserConfig(
+                    user_id=user_id, habits=[], weekly_success_config=None
+                )
 
             # Check if habit already exists (by title)
             existing_titles = {h.title for h in config.habits}
@@ -485,6 +539,119 @@ class HabitTrackingService:
                 habits_after=len(config.habits),
             )
             return removed
+        except Exception as e:
+            log_service_completion(self.logger, context, success=False, error=e)
+            raise
+
+    async def update_habit_for_user(
+        self, user_id: str, habit_id: str, updated_habit: Habit
+    ) -> bool:
+        """Update an existing habit for a user.
+
+        Args:
+            user_id: The user identifier
+            habit_id: The ID of the habit to update
+            updated_habit: The updated habit data
+
+        Returns:
+            True if habit was updated successfully, False if not found
+        """
+        context = log_service_action(
+            self.logger,
+            "update_habit_for_user",
+            user_id=user_id,
+            habit_id=habit_id,
+            updated_title=updated_habit.title,
+            updated_weekly_target=updated_habit.weekly_target,
+        )
+
+        try:
+            config = await self.config_repo.get_config(user_id)
+            if not config:
+                log_service_completion(
+                    self.logger, context, success=False, reason="User config not found"
+                )
+                return False
+
+            # Find the habit to update
+            habit_index = None
+            for i, habit in enumerate(config.habits):
+                if habit.id == habit_id:
+                    habit_index = i
+                    break
+
+            if habit_index is None:
+                log_service_completion(
+                    self.logger, context, success=False, reason="Habit not found"
+                )
+                return False
+
+            # Check if the new title conflicts with another habit (excluding current one)
+            existing_titles = {
+                h.title for i, h in enumerate(config.habits) if i != habit_index
+            }
+            if updated_habit.title in existing_titles:
+                log_service_completion(
+                    self.logger, context, success=False, reason="Title already exists"
+                )
+                return False
+
+            # Update the habit (preserve the original ID)
+            updated_habit.id = habit_id
+            config.habits[habit_index] = updated_habit
+
+            await self.config_repo.save_config(config)
+
+            log_service_completion(
+                self.logger,
+                context,
+                success=True,
+                habit_updated=True,
+            )
+            return True
+
+        except Exception as e:
+            log_service_completion(self.logger, context, success=False, error=e)
+            raise
+
+    async def update_user_settings(self, user_id: str, week_start_day: int) -> bool:
+        """Update user settings.
+
+        Args:
+            user_id: The user identifier
+            week_start_day: Day of week when week starts (0=Sunday, 1=Monday, etc.)
+
+        Returns:
+            True if settings were updated successfully
+        """
+        context = log_service_action(
+            self.logger,
+            "update_user_settings",
+            user_id=user_id,
+            week_start_day=week_start_day,
+        )
+
+        try:
+            config = await self.config_repo.get_config(user_id)
+            if not config:
+                # Create new config if it doesn't exist
+                config = UserConfig(
+                    user_id=user_id, habits=[], weekly_success_config=None
+                )
+
+            # Update the week start day
+            config.week_start_day = week_start_day
+
+            await self.config_repo.save_config(config)
+
+            log_service_completion(
+                self.logger,
+                context,
+                success=True,
+                settings_updated=True,
+            )
+            return True
+
         except Exception as e:
             log_service_completion(self.logger, context, success=False, error=e)
             raise
