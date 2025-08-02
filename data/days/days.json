@@ -5,6 +5,14 @@
       {
         "habit_id": "food-habit-fixed-id",
         "completion_value": 1,
+        "status": "completed",
+        "notes": null,
+        "completed_at": null
+      },
+      {
+        "habit_id": "b2e8c5ae-8ae2-4484-9be5-bfd4272ee238",
+        "completion_value": 1,
+        "status": "completed",
         "notes": null,
         "completed_at": null
       }
@@ -33,17 +41,10 @@
     "date": "2025-08-02",
     "habit_entries": [
       {
-        "habit_id": "b2e8c5ae-8ae2-4484-9be5-bfd4272ee238",
+        "habit_id": "food-habit-fixed-id",
         "completion_value": 1,
         "status": "completed",
-        "notes": null,
-        "completed_at": null
-      },
-      {
-        "habit_id": "food-habit-fixed-id",
-        "completion_value": -1,
-        "status": "failed",
-        "notes": null,
+        "notes": "",
         "completed_at": null
       }
     ]

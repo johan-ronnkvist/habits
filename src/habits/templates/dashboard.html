@@ -68,60 +68,95 @@
 {% block content %}
 <div class="px-4 py-6 sm:px-0">
     {% if habits %}
-    <!-- Hero Section with Progress Circle -->
-    <div class="bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-8 mb-8 text-white">
-        <div class="flex items-center justify-between">
-            <div class="flex-1">
-                <h2 class="text-2xl font-bold mb-2">Your Daily Progress</h2>
-                <p class="text-blue-100 mb-4">
-                    {% if daily_summary %}
-                        {{ daily_summary.completed_habits }} of {{ daily_summary.total_habits }} habits completed
-                    {% else %}
-                        Ready to build great habits today?
-                    {% endif %}
-                </p>
-                
-                {% if daily_summary %}
-                <!-- Progress Bar -->
-                <div class="w-full bg-blue-400 bg-opacity-30 rounded-full h-3 mb-4">
-                    <div class="bg-white h-3 rounded-full transition-all duration-500" 
-                         style="width: {{ (daily_summary.completion_rate * 100)|round }}%"></div>
-                </div>
-                
-                <div class="flex items-center space-x-4 text-sm">
-                    <span class="bg-white bg-opacity-20 px-3 py-1 rounded-full">
-                        {{ "%.0f"|format(daily_summary.completion_rate * 100) }}% Complete
+    <!-- Weekly Overview -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-8">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900">This Week</h2>
+            <div class="flex items-center space-x-2">
+                {% if weekly_overview.weekly_status == 'excellent' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+                        <span class="mr-1">🏆</span> Excellent
                     </span>
-                    {% if daily_summary.completion_rate == 1.0 %}
-                    <span class="bg-yellow-400 bg-opacity-90 text-yellow-900 px-3 py-1 rounded-full font-medium">
-                        🔥 Perfect Day!
+                {% elif weekly_overview.weekly_status == 'great' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        <span class="mr-1">⭐</span> Great
                     </span>
-                    {% elif daily_summary.completion_rate >= 0.8 %}
-                    <span class="bg-green-400 bg-opacity-90 text-green-900 px-3 py-1 rounded-full font-medium">
-                        🌟 Great Job!
+                {% elif weekly_overview.weekly_status == 'good' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">
+                        <span class="mr-1">👍</span> Good
                     </span>
-                    {% elif daily_summary.completion_rate >= 0.5 %}
-                    <span class="bg-blue-200 bg-opacity-90 text-blue-900 px-3 py-1 rounded-full font-medium">
-                        👍 Keep Going!
+                {% elif weekly_overview.weekly_status == 'fair' %}
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
+                        <span class="mr-1">📈</span> Fair
                     </span>
-                    {% endif %}
-                </div>
-                {% endif %}
-            </div>
-            
-            <!-- Motivational Icon -->
-            <div class="hidden md:block">
-                {% if daily_summary and daily_summary.completion_rate == 1.0 %}
-                    <div class="text-6xl">🏆</div>
-                {% elif daily_summary and daily_summary.completion_rate >= 0.8 %}
-                    <div class="text-6xl">⭐</div>
-                {% elif daily_summary and daily_summary.completion_rate >= 0.5 %}
-                    <div class="text-6xl">💪</div>
                 {% else %}
-                    <div class="text-6xl">🎯</div>
+                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                        <span class="mr-1">💪</span> Keep Going
+                    </span>
                 {% endif %}
             </div>
         </div>
+        
+        <!-- Days Grid -->
+        <div class="grid grid-cols-7 gap-3">
+            {% for day in weekly_overview.week_days %}
+            <div class="text-center">
+                <!-- Day Name -->
+                <div class="text-xs font-medium text-gray-500 mb-2">{{ day.day_name }}</div>
+                
+                <!-- Day Button/Circle -->
+                {% if day.can_navigate %}
+                    <a href="/{{ day.url }}" 
+                       class="block w-12 h-12 mx-auto rounded-full border-2 flex items-center justify-center text-sm font-medium transition-all duration-200 hover:scale-105
+                              {% if day.is_today %}
+                                  border-blue-500 bg-blue-50 text-blue-700 ring-2 ring-blue-200
+                              {% elif day.status == 'perfect' %}
+                                  border-green-500 bg-green-500 text-white hover:bg-green-600
+                              {% elif day.status == 'great' %}
+                                  border-green-400 bg-green-400 text-white hover:bg-green-500
+                              {% elif day.status == 'good' %}
+                                  border-blue-400 bg-blue-400 text-white hover:bg-blue-500
+                              {% elif day.status == 'partial' %}
+                                  border-yellow-400 bg-yellow-400 text-white hover:bg-yellow-500
+                              {% elif day.status == 'none' %}
+                                  border-gray-300 bg-gray-100 text-gray-500 hover:bg-gray-200
+                              {% else %}
+                                  border-gray-200 bg-gray-50 text-gray-400
+                              {% endif %}">
+                        {{ day.day_number }}
+                    </a>
+                {% else %}
+                    <div class="w-12 h-12 mx-auto rounded-full border-2 border-gray-200 bg-gray-50 flex items-center justify-center text-sm font-medium text-gray-300">
+                        {{ day.day_number }}
+                    </div>
+                {% endif %}
+                
+                <!-- Status Indicator -->
+                {% if not day.is_future and day.total_habits > 0 %}
+                    <div class="mt-1 text-xs text-gray-500">
+                        {{ day.completed_habits }}/{{ day.total_habits }}
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Weekly Summary -->
+        {% if weekly_overview.total_possible > 0 %}
+        <div class="mt-6 pt-6 border-t border-gray-200">
+            <div class="flex items-center justify-between text-sm">
+                <span class="text-gray-600">Weekly Progress</span>
+                <span class="font-medium text-gray-900">
+                    {{ weekly_overview.total_completed }} / {{ weekly_overview.total_possible }} 
+                    ({{ "%.0f"|format(weekly_overview.weekly_completion_rate * 100) }}%)
+                </span>
+            </div>
+            <div class="mt-2 w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500" 
+                     style="width: {{ (weekly_overview.weekly_completion_rate * 100)|round }}%"></div>
+            </div>
+        </div>
+        {% endif %}
     </div>
     {% endif %}
 
