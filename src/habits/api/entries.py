@@ -83,3 +83,40 @@ async def get_daily_summary(
     if not summary:
         return {"message": "No data for this date", "date": target_date}
     return summary
+
+
+@router.delete("/entries/{target_date}/{habit_id}")
+async def delete_entry(
+    target_date: str,
+    habit_id: str,
+    service: HabitTrackingService = Depends(get_habit_service),
+):
+    """Delete a habit entry for a specific date and habit."""
+    logger.info(
+        "API entry deletion requested",
+        target_date=target_date,
+        habit_id=habit_id,
+    )
+
+    try:
+        parsed_date = datetime.strptime(target_date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(
+            status_code=400, detail="Invalid date format. Use YYYY-MM-DD"
+        )
+
+    deleted = await service.delete_habit_entry(parsed_date, habit_id)
+    if not deleted:
+        logger.warning(
+            "API entry deletion failed - not found",
+            target_date=target_date,
+            habit_id=habit_id,
+        )
+        raise HTTPException(status_code=404, detail="Habit entry not found")
+
+    logger.info(
+        "API entry deleted successfully",
+        target_date=target_date,
+        habit_id=habit_id,
+    )
+    return {"message": "Habit entry deleted successfully"}

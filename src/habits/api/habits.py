@@ -8,7 +8,7 @@ from ..domain.models.habit_status import HabitConstraintError
 from ..services.habit_tracking_service import HabitTrackingService
 from ..utils.logging_config import get_logger
 from .dependencies import get_habit_service, DEFAULT_USER_ID
-from .models import HabitCreate, HabitCompletionCreate, HabitFailureCreate
+from .models import HabitCreate, HabitUpdate, HabitCompletionCreate, HabitFailureCreate
 
 logger = get_logger(__name__)
 router = APIRouter(prefix="/api", tags=["habits"])
@@ -19,17 +19,65 @@ async def create_habit(
     habit: HabitCreate, service: HabitTrackingService = Depends(get_habit_service)
 ):
     """Create a new habit."""
-    logger.info("API habit creation requested", habit_title=habit.title)
+    logger.info(
+        "API habit creation requested",
+        habit_title=habit.title,
+        weekly_target=habit.weekly_target,
+    )
 
-    new_habit = Habit(title=habit.title, description=habit.description)
+    new_habit = Habit(
+        title=habit.title,
+        description=habit.description,
+        weekly_target=habit.weekly_target,
+    )
     await service.add_habit_to_user(DEFAULT_USER_ID, new_habit)
 
     logger.info(
         "API habit created successfully",
         habit_id=new_habit.id,
         habit_title=new_habit.title,
+        weekly_target=new_habit.weekly_target,
     )
     return {"message": "Habit created successfully", "habit": new_habit.model_dump()}
+
+
+@router.put("/habits/{habit_id}")
+async def update_habit(
+    habit_id: str,
+    habit: HabitUpdate,
+    service: HabitTrackingService = Depends(get_habit_service),
+):
+    """Update an existing habit."""
+    logger.info(
+        "API habit update requested",
+        habit_id=habit_id,
+        habit_title=habit.title,
+        weekly_target=habit.weekly_target,
+    )
+
+    updated_habit = Habit(
+        title=habit.title,
+        description=habit.description,
+        weekly_target=habit.weekly_target,
+    )
+
+    success = await service.update_habit_for_user(
+        DEFAULT_USER_ID, habit_id, updated_habit
+    )
+    if not success:
+        logger.warning("API habit update failed - not found", habit_id=habit_id)
+        raise HTTPException(status_code=404, detail="Habit not found")
+
+    logger.info(
+        "API habit updated successfully",
+        habit_id=habit_id,
+        habit_title=updated_habit.title,
+        weekly_target=updated_habit.weekly_target,
+    )
+    return {
+        "message": "Habit updated successfully",
+        "habit": updated_habit.model_dump(),
+    }
 
 
 @router.delete("/habits/{habit_title}")

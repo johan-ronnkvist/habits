@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 
 from ..api.dependencies import get_habit_service, DEFAULT_USER_ID
 from ..services.habit_tracking_service import HabitTrackingService
+# Region config imports removed - no configurable settings remain
 
 # Setup templates
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -94,5 +95,19 @@ async def progress_page(
             "progress_days": progress_days,
             "calendar_data": calendar_data,
             "date_range": {"start": start_date, "end": today},
+        },
+    )
+
+
+@router.get("/settings", response_class=HTMLResponse)
+async def settings_page(
+    request: Request, service: HabitTrackingService = Depends(get_habit_service)
+):
+    """Display user settings page."""
+    return templates.TemplateResponse(
+        "settings.html",
+        {
+            "request": request,
+            # Week start day settings removed - always uses Monday (ISO 8601 standard)
         },
     )

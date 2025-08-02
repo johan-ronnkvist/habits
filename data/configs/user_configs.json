@@ -4,14 +4,20 @@
       {
         "id": "food-habit-fixed-id",
         "title": "Food",
-        "description": "I am eating sensible food both in amount and nutrition."
+        "description": "I am eating sensible food both in amount and nutrition.",
+        "category": null,
+        "weekly_target": 5
       },
       {
         "id": "b2e8c5ae-8ae2-4484-9be5-bfd4272ee238",
         "title": "Workout",
-        "description": "Some form of workout"
+        "description": "Some form of workout for at least 30 minutes",
+        "category": null,
+        "weekly_target": 3
       }
     ],
-    "user_id": "default_user"
+    "user_id": "default_user",
+    "weekly_success_config": null,
+    "week_start_day": 1
   }
 }

@@ -1,4 +1,5 @@
 import uuid
+from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -25,3 +26,13 @@ class Habit(BaseModel):
     description: str = Field(
         ..., min_length=1, description="A detailed description of the habit"
     )
+    weekly_target: Optional[int] = Field(
+        None,
+        ge=1,
+        le=7,
+        description="Number of successful completions needed per week for this habit to contribute to weekly success",
+    )
+
+    def contributes_to_weekly_success(self) -> bool:
+        """Check if this habit contributes to weekly success tracking."""
+        return self.weekly_target is not None and self.weekly_target > 0

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Settings - Habits Tracker{% endblock %}
+
+{% block header %}Settings{% endblock %}
+
+{% block content %}
+<div class="px-4 py-6 sm:px-0">
+    <!-- Week Configuration Info -->
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-calendar-week text-blue-400 text-xl"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Week Configuration</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <p>This app uses <strong>Monday</strong> as the start of the week, following the ISO 8601 international standard.</p>
+                    <p class="mt-2">This affects weekly progress calculations and calendar displays throughout the application.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty Settings Message -->
+    <div class="bg-white shadow sm:rounded-lg mb-8">
+        <div class="px-4 py-5 sm:p-6 text-center">
+            <i class="fas fa-cog text-gray-400 text-4xl mb-4"></i>
+            <h3 class="text-lg leading-6 font-medium text-gray-900 mb-2">No Configurable Settings</h3>
+            <p class="text-sm text-gray-500">
+                The app currently uses optimal defaults for all settings. 
+                Future updates may add more customization options.
+            </p>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="mt-8 flex justify-between">
+        <a href="/" 
+           class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Back to Dashboard
+        </a>
+        
+        <a href="/habits" 
+           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
+            <i class="fas fa-cog mr-2"></i>
+            Manage Habits
+        </a>
+    </div>
+</div>
+{% endblock %}

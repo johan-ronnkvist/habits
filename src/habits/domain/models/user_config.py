@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel, Field
 
 from .habit import Habit
+from .weekly_config import WeeklySuccessConfig
 
 
 class UserConfig(BaseModel):
@@ -17,4 +18,7 @@ class UserConfig(BaseModel):
     )
     user_id: str = Field(
         ..., min_length=1, description="Unique identifier for the user"
+    )
+    weekly_success_config: Optional[WeeklySuccessConfig] = Field(
+        None, description="Configuration for defining weekly success criteria"
     )

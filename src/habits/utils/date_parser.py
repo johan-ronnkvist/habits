@@ -191,7 +191,7 @@ def format_date_for_url(target_date: date) -> str:
         target_date: Date to format
 
     Returns:
-        URL-friendly date string (e.g., 'aug/12/2024')
+        URL-friendly date string (e.g., '2024/aug/12')
     """
     if target_date == date.today():
         return "today"
@@ -213,11 +213,8 @@ def format_date_for_url(target_date: date) -> str:
     ]
     month_name = month_names[target_date.month - 1]
 
-    # Only include year if it's not the current year
-    if target_date.year == date.today().year:
-        return f"{month_name}/{target_date.day}"
-    else:
-        return f"{month_name}/{target_date.day}/{target_date.year}"
+    # Always include year in year/month/day format
+    return f"{target_date.year}/{month_name}/{target_date.day}"
 
 
 def get_navigation_dates(target_date: date) -> dict:
