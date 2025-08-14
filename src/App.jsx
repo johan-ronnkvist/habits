@@ -1,11 +1,19 @@
+import { useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Overview from './pages/Overview'
 import Habits from './pages/Habits'
 import History from './pages/History'
 import Settings from './pages/Settings'
+import { initDB } from './utils/indexedDB'
 
 function App() {
+  useEffect(() => {
+    initDB().catch(error => {
+      console.error('Failed to initialize database:', error)
+    })
+  }, [])
+
   return (
     <Router>
       <div className="min-h-screen bg-surface-variant">
