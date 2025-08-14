@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import IconSelector from '../components/IconSelector'
-import { initDB, addHabit, getAllHabits, updateHabit, deleteHabit } from '../utils/indexedDB'
+import { initDB, addHabit, getAllHabits, updateHabit, deleteHabit, updateHabitsOrder } from '../utils/indexedDB'
 
 const AVAILABLE_ICONS = [
   // Health & Fitness
@@ -57,6 +57,8 @@ function Habits() {
     icon: 'fitness_center'
   })
   const [deleteConfirm, setDeleteConfirm] = useState(null)
+  const [draggedHabit, setDraggedHabit] = useState(null)
+  const [dragOverIndex, setDragOverIndex] = useState(null)
 
   useEffect(() => {
     loadHabits()
@@ -66,6 +68,7 @@ function Habits() {
     try {
       await initDB()
       const habitsData = await getAllHabits()
+      console.log('🏠 Habits page loaded habits:', habitsData.map(h => ({ name: h.name, sortOrder: h.sortOrder })))
       setHabits(habitsData)
     } catch (error) {
       console.error('Error loading habits:', error)
@@ -81,7 +84,7 @@ function Habits() {
     try {
       const newHabit = await addHabit(formData)
       setHabits(prev => [...prev, newHabit])
-      setFormData({ name: '', description: '', icon: 'fitness' })
+      setFormData({ name: '', description: '', icon: 'fitness_center' })
     } catch (error) {
       console.error('Error adding habit:', error)
     }
@@ -124,7 +127,7 @@ function Habits() {
         habit.id === habitId ? updatedHabit : habit
       ))
       setEditingHabit(null)
-      setEditFormData({ name: '', description: '', icon: 'fitness' })
+      setEditFormData({ name: '', description: '', icon: 'fitness_center' })
     } catch (error) {
       console.error('Error updating habit:', error)
     }
@@ -133,6 +136,87 @@ function Habits() {
   const handleCancelEdit = () => {
     setEditingHabit(null)
     setEditFormData({ name: '', description: '', icon: 'fitness' })
+  }
+
+  const handleDragStart = (e, habit, index) => {
+    setDraggedHabit({ habit, index })
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/html', e.target)
+  }
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+    setDragOverIndex(index)
+  }
+
+  const handleDragLeave = (e) => {
+    setDragOverIndex(null)
+  }
+
+  const handleDrop = async (e, dropIndex) => {
+    e.preventDefault()
+    setDragOverIndex(null)
+    
+    if (!draggedHabit || draggedHabit.index === dropIndex) {
+      setDraggedHabit(null)
+      return
+    }
+
+    console.log(`🎯 Dropping habit from index ${draggedHabit.index} to ${dropIndex}`)
+    console.log('📋 Current habits before reorder:', habits.map((h, i) => `${i}: ${h.name} (${h.sortOrder})`))
+
+    try {
+      const newHabits = [...habits]
+      const [draggedItem] = newHabits.splice(draggedHabit.index, 1)
+      newHabits.splice(dropIndex, 0, draggedItem)
+      
+      console.log('🔄 New order after drag:', newHabits.map((h, i) => `${i}: ${h.name}`))
+      
+      // Update UI immediately
+      setHabits(newHabits)
+      console.log('💾 Saving new order to database...')
+      
+      await updateHabitsOrder(newHabits)
+      setDraggedHabit(null)
+      console.log('✅ Drag completed successfully')
+      
+      // Reload to verify persistence
+      console.log('🔍 Reloading to verify persistence...')
+      setTimeout(() => {
+        loadHabits()
+      }, 500)
+    } catch (error) {
+      console.error('❌ Error reordering habits:', error)
+      // Reload habits if reordering fails
+      loadHabits()
+    }
+  }
+
+  const handleDragEnd = () => {
+    setDraggedHabit(null)
+    setDragOverIndex(null)
+  }
+
+  const moveHabit = async (fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return
+    
+    console.log(`Moving habit from index ${fromIndex} to ${toIndex}`)
+    
+    try {
+      const newHabits = [...habits]
+      const [movedItem] = newHabits.splice(fromIndex, 1)
+      newHabits.splice(toIndex, 0, movedItem)
+      
+      console.log('New order:', newHabits.map(h => h.name))
+      
+      setHabits(newHabits)
+      await updateHabitsOrder(newHabits)
+      console.log('Move completed successfully')
+    } catch (error) {
+      console.error('Error reordering habits:', error)
+      loadHabits()
+    }
   }
 
   return (
@@ -201,8 +285,23 @@ function Habits() {
           </div>
         ) : (
           <div className="space-y-4">
-            {habits.map((habit) => (
-              <div key={habit.id} className="border border-neutral-200 rounded-2xl p-6">
+            {habits.map((habit, index) => (
+              <div 
+                key={habit.id} 
+                draggable={editingHabit !== habit.id}
+                onDragStart={(e) => handleDragStart(e, habit, index)}
+                onDragOver={(e) => handleDragOver(e, index)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, index)}
+                onDragEnd={handleDragEnd}
+                className={`border rounded-2xl p-6 transition-all ${
+                  dragOverIndex === index 
+                    ? 'border-primary-300 bg-primary-50 border-2' 
+                    : draggedHabit?.index === index
+                      ? 'border-neutral-300 bg-neutral-100 opacity-50'
+                      : 'border-neutral-200'
+                } ${editingHabit !== habit.id ? 'cursor-move' : ''}`}
+              >
                 {editingHabit === habit.id ? (
                   <div className="space-y-4">
                     <div className="flex gap-4 items-start">
@@ -244,6 +343,16 @@ function Habits() {
                 ) : (
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
+                      {/* Drag Handle */}
+                      <div className="flex flex-col items-center gap-1 pt-1 cursor-move" title="Drag to reorder">
+                        <div className="w-1 h-1 bg-neutral-400 rounded-full"></div>
+                        <div className="w-1 h-1 bg-neutral-400 rounded-full"></div>
+                        <div className="w-1 h-1 bg-neutral-400 rounded-full"></div>
+                        <div className="w-1 h-1 bg-neutral-400 rounded-full"></div>
+                        <div className="w-1 h-1 bg-neutral-400 rounded-full"></div>
+                        <div className="w-1 h-1 bg-neutral-400 rounded-full"></div>
+                      </div>
+                      
                       <div className="w-12 h-12 bg-primary-100 rounded-3xl flex items-center justify-center flex-shrink-0">
                         <span className="material-symbols-outlined text-primary-600 text-2xl">
                           {AVAILABLE_ICONS.find(icon => icon.id === habit.icon)?.id || AVAILABLE_ICONS[0].id}
@@ -256,10 +365,43 @@ function Habits() {
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1">
+                      {/* Reorder Buttons */}
+                      <button
+                        onClick={() => moveHabit(index, Math.max(0, index - 1))}
+                        disabled={index === 0}
+                        className={`p-2 rounded-lg transition-colors ${
+                          index === 0
+                            ? 'text-neutral-300 cursor-not-allowed'
+                            : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100'
+                        }`}
+                        title="Move up"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => moveHabit(index, Math.min(habits.length - 1, index + 1))}
+                        disabled={index === habits.length - 1}
+                        className={`p-2 rounded-lg transition-colors ${
+                          index === habits.length - 1
+                            ? 'text-neutral-300 cursor-not-allowed'
+                            : 'text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100'
+                        }`}
+                        title="Move down"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </button>
+                      
+                      <div className="w-px bg-neutral-200 mx-1"></div>
+                      
+                      {/* Edit/Delete Buttons */}
                       <button
                         onClick={() => handleEditHabit(habit)}
-                        className="text-neutral-400 hover:text-blue-500 transition-colors p-2"
+                        className="text-neutral-400 hover:text-blue-500 transition-colors p-2 rounded-lg hover:bg-neutral-100"
                         title="Edit habit"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -268,7 +410,7 @@ function Habits() {
                       </button>
                       <button
                         onClick={() => confirmDelete(habit)}
-                        className="text-neutral-400 hover:text-red-500 transition-colors p-2"
+                        className="text-neutral-400 hover:text-red-500 transition-colors p-2 rounded-lg hover:bg-neutral-100"
                         title="Delete habit"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

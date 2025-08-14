@@ -21,6 +21,7 @@ function Overview() {
   const loadHabits = async () => {
     try {
       const habitsData = await getAllHabits()
+      console.log('📊 Overview page loaded habits:', habitsData.map(h => ({ name: h.name, sortOrder: h.sortOrder })))
       setHabits(habitsData)
     } catch (error) {
       console.error('Error loading habits:', error)
