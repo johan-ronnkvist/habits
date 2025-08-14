@@ -36,6 +36,7 @@ export const addHabit = async (habit) => {
     id: Date.now().toString(),
     createdAt: new Date().toISOString(),
     completedDates: [],
+    failedDates: [],
     streak: 0,
     ...habit
   }
@@ -55,7 +56,13 @@ export const getAllHabits = async () => {
   
   return new Promise((resolve, reject) => {
     const request = store.getAll()
-    request.onsuccess = () => resolve(request.result)
+    request.onsuccess = () => {
+      const habits = request.result.map(habit => ({
+        ...habit,
+        failedDates: habit.failedDates || [] // Ensure failedDates exists for existing habits
+      }))
+      resolve(habits)
+    }
     request.onerror = () => reject(request.error)
   })
 }
@@ -96,7 +103,7 @@ export const deleteHabit = async (id) => {
   })
 }
 
-export const toggleHabitCompletion = async (id, date = new Date().toISOString().split('T')[0]) => {
+export const setHabitState = async (id, date = new Date().toISOString().split('T')[0], state = 'none') => {
   if (!db) await initDB()
   
   const habit = await new Promise((resolve, reject) => {
@@ -110,18 +117,55 @@ export const toggleHabitCompletion = async (id, date = new Date().toISOString().
   if (!habit) throw new Error('Habit not found')
   
   const completedDates = [...habit.completedDates]
-  const dateIndex = completedDates.indexOf(date)
+  const failedDates = [...(habit.failedDates || [])]
   
-  if (dateIndex > -1) {
-    completedDates.splice(dateIndex, 1)
-  } else {
+  // Remove date from both arrays first
+  const completedIndex = completedDates.indexOf(date)
+  const failedIndex = failedDates.indexOf(date)
+  
+  if (completedIndex > -1) completedDates.splice(completedIndex, 1)
+  if (failedIndex > -1) failedDates.splice(failedIndex, 1)
+  
+  // Add to appropriate array based on state
+  if (state === 'completed') {
     completedDates.push(date)
     completedDates.sort()
+  } else if (state === 'failed') {
+    failedDates.push(date)
+    failedDates.sort()
   }
   
   const streak = calculateStreak(completedDates)
   
-  return updateHabit(id, { completedDates, streak })
+  return updateHabit(id, { completedDates, failedDates, streak })
+}
+
+export const getHabitState = (habit, date = new Date().toISOString().split('T')[0]) => {
+  const completedDates = habit.completedDates || []
+  const failedDates = habit.failedDates || []
+  
+  if (completedDates.includes(date)) return 'completed'
+  if (failedDates.includes(date)) return 'failed'
+  return 'none'
+}
+
+export const toggleHabitCompletion = async (id, date = new Date().toISOString().split('T')[0]) => {
+  if (!db) await initDB()
+  
+  const habit = await new Promise((resolve, reject) => {
+    const transaction = db.transaction([HABITS_STORE], 'readonly')
+    const store = transaction.objectStore(HABITS_STORE)
+    const request = store.get(id)
+    request.onsuccess = () => resolve(request.result)
+    request.onerror = () => reject(request.error)
+  })
+  
+  if (!habit) throw new Error('Habit not found')
+  
+  const currentState = getHabitState(habit, date)
+  const newState = currentState === 'completed' ? 'none' : 'completed'
+  
+  return setHabitState(id, date, newState)
 }
 
 const calculateStreak = (completedDates) => {
