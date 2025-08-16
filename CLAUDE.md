@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is the "better-habits" project - a habit tracking application built as a static site. The app allows users to create, track, and manage daily habits with streak counters and completion status.
+This is the "better-habits" project - a habit tracking application built as a static site. The app allows users to create, track, and manage daily habits with completion status.
 
 ## Technology Stack
 
@@ -43,7 +43,7 @@ npm run preview
 ## Architecture Notes
 
 - **State Management**: React useState for local component state
-- **Data Persistence**: Browser localStorage for habit data
+- **Data Persistence**: IndexedDB for habit data
 - **Styling**: Utility-first CSS with Tailwind
 - **Component Structure**: Single App component with inline logic (suitable for this simple app)
 
@@ -51,7 +51,6 @@ npm run preview
 
 - Add new habits
 - Mark habits as complete/incomplete for the day
-- Track consecutive day streaks
 - Delete habits
 - Persistent storage across browser sessions
 - Responsive design for mobile and desktop
@@ -77,3 +76,4 @@ npm run preview
 - Be brief initially, user will ask follow-up questions
 - Reference TECHNICAL_OVERVIEW.md for key concepts and choices
 - Explain rationale behind technical decisions
+- before attempting to start the dev server, check if it's already running. It's common for developers to have the server running dev mode from a separate terminal

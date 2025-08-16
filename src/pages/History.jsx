@@ -91,17 +91,14 @@ function History() {
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-neutral-900 mb-2">History</h1>
-        <p className="text-neutral-600 text-lg">View your habit tracking history and progress over time</p>
-      </div>
       
       {/* Monthly Overview */}
       <div className="card p-8 mb-6">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-medium text-neutral-900">Monthly Overview</h2>
-            <p className="text-neutral-600">Track your habit progress throughout the month</p>
+            <div className="text-3xl font-bold text-primary-600">
+              {monthName}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {!isCurrentMonth() && (
@@ -183,7 +180,7 @@ function History() {
                   </div>
                   <div>
                     <h3 className="text-xl font-medium text-neutral-900">{selectedHabit.name}</h3>
-                    <p className="text-sm text-neutral-600">{monthName}</p>
+                    <p className="text-sm text-neutral-600">Monthly progress view</p>
                   </div>
                 </div>
 
@@ -222,17 +219,17 @@ function History() {
                           {isInMonth && !isFuture && (
                             <div className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-6 lg:h-6 rounded-full flex items-center justify-center ${
                               habitState === 'completed'
-                                ? 'bg-green-100'
+                                ? 'bg-green-200'
                                 : habitState === 'failed'
-                                  ? 'bg-red-100'
+                                  ? 'bg-red-200'
                                   : 'bg-neutral-200'
                             }`}>
                               {habitState === 'completed' ? (
-                                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-green-700" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>
                               ) : habitState === 'failed' ? (
-                                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 lg:w-4 lg:h-4 text-red-700" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                                 </svg>
                               ) : (

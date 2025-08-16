@@ -1,6 +1,7 @@
 const DB_NAME = 'BetterHabitsDB'
-const DB_VERSION = 2 // Increment version to support sortOrder
+const DB_VERSION = 3 // Increment version to support settings store
 const HABITS_STORE = 'habits'
+const SETTINGS_STORE = 'settings'
 
 let db = null
 
@@ -39,6 +40,11 @@ export const initDB = () => {
           console.log('ℹ️ sortOrder index already exists')
         }
       }
+      
+      if (!database.objectStoreNames.contains(SETTINGS_STORE)) {
+        console.log('📦 Creating settings store')
+        database.createObjectStore(SETTINGS_STORE, { keyPath: 'key' })
+      }
     }
   })
 }
@@ -51,7 +57,6 @@ export const addHabit = async (habit) => {
     createdAt: new Date().toISOString(),
     completedDates: [],
     failedDates: [],
-    streak: 0,
     sortOrder: Date.now(), // Use timestamp as default sortOrder
     ...habit
   }
@@ -240,9 +245,7 @@ export const setHabitState = async (id, date = new Date().toISOString().split('T
     failedDates.sort()
   }
   
-  const streak = calculateStreak(completedDates)
-  
-  return updateHabit(id, { completedDates, failedDates, streak })
+  return updateHabit(id, { completedDates, failedDates })
 }
 
 export const getHabitState = (habit, date = new Date().toISOString().split('T')[0]) => {
@@ -273,25 +276,157 @@ export const toggleHabitCompletion = async (id, date = new Date().toISOString().
   return setHabitState(id, date, newState)
 }
 
-const calculateStreak = (completedDates) => {
-  if (completedDates.length === 0) return 0
+// Restore habits from backup data
+export const restoreHabitsFromBackup = async (backupData, strategy = 'merge') => {
+  if (!db) await initDB()
   
-  const sortedDates = [...completedDates].sort().reverse()
-  const today = new Date().toISOString().split('T')[0]
-  let streak = 0
+  console.log('🔄 Starting habits restore from backup...')
+  const backupHabits = backupData.habits || []
   
-  for (let i = 0; i < sortedDates.length; i++) {
-    const currentDate = sortedDates[i]
-    const expectedDate = new Date()
-    expectedDate.setDate(expectedDate.getDate() - i)
-    const expectedDateStr = expectedDate.toISOString().split('T')[0]
-    
-    if (currentDate === expectedDateStr || (i === 0 && currentDate === today)) {
-      streak++
-    } else {
-      break
-    }
+  if (backupHabits.length === 0) {
+    throw new Error('No habits found in backup data')
   }
   
-  return streak
+  // Get existing habits
+  const existingHabits = await getAllHabits()
+  
+  if (strategy === 'replace') {
+    // Clear all existing habits and replace with backup
+    console.log('🗑️ Clearing existing habits (replace strategy)')
+    const transaction = db.transaction([HABITS_STORE], 'readwrite')
+    const store = transaction.objectStore(HABITS_STORE)
+    await new Promise((resolve, reject) => {
+      const request = store.clear()
+      request.onsuccess = () => resolve()
+      request.onerror = () => reject(request.error)
+    })
+    
+    // Add all backup habits
+    for (const habit of backupHabits) {
+      await addHabitDirect(habit)
+    }
+    
+    console.log(`✅ Replaced all habits with ${backupHabits.length} habits from backup`)
+    return { added: backupHabits.length, updated: 0, skipped: 0 }
+  } else {
+    // Merge strategy - combine local and backup data intelligently
+    console.log('🔀 Merging habits (merge strategy)')
+    const existingHabitsMap = new Map(existingHabits.map(h => [h.id, h]))
+    
+    let added = 0, updated = 0, skipped = 0
+    
+    for (const backupHabit of backupHabits) {
+      const existingHabit = existingHabitsMap.get(backupHabit.id)
+      
+      if (!existingHabit) {
+        // New habit from backup
+        await addHabitDirect(backupHabit)
+        added++
+        console.log(`➕ Added new habit: ${backupHabit.name}`)
+      } else {
+        // Merge completion data
+        const mergedHabit = mergeHabitData(existingHabit, backupHabit)
+        if (mergedHabit.updated) {
+          await updateHabit(backupHabit.id, mergedHabit.habit)
+          updated++
+          console.log(`🔄 Updated habit: ${backupHabit.name}`)
+        } else {
+          skipped++
+          console.log(`⏭️ Skipped habit (no changes): ${backupHabit.name}`)
+        }
+      }
+    }
+    
+    console.log(`✅ Merge complete: ${added} added, ${updated} updated, ${skipped} skipped`)
+    return { added, updated, skipped }
+  }
 }
+
+// Add habit directly without auto-generated fields
+const addHabitDirect = async (habit) => {
+  if (!db) await initDB()
+  
+  const transaction = db.transaction([HABITS_STORE], 'readwrite')
+  const store = transaction.objectStore(HABITS_STORE)
+  
+  return new Promise((resolve, reject) => {
+    const request = store.add(habit)
+    request.onsuccess = () => resolve(habit)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+// Merge two habit objects, combining completion data
+const mergeHabitData = (localHabit, backupHabit) => {
+  const localCompleted = new Set(localHabit.completedDates || [])
+  const backupCompleted = new Set(backupHabit.completedDates || [])
+  const localFailed = new Set(localHabit.failedDates || [])
+  const backupFailed = new Set(backupHabit.failedDates || [])
+  
+  // Combine all unique completion dates
+  const mergedCompleted = [...new Set([...localCompleted, ...backupCompleted])].sort()
+  const mergedFailed = [...new Set([...localFailed, ...backupFailed])].sort()
+  
+  // Check if there are any changes
+  const completedChanged = mergedCompleted.length !== localCompleted.size || 
+    !mergedCompleted.every(date => localCompleted.has(date))
+  const failedChanged = mergedFailed.length !== localFailed.size || 
+    !mergedFailed.every(date => localFailed.has(date))
+  
+  const updated = completedChanged || failedChanged
+  
+  return {
+    updated,
+    habit: {
+      ...localHabit,
+      completedDates: mergedCompleted,
+      failedDates: mergedFailed,
+      // Prefer local values for other fields, but update if local is missing
+      name: localHabit.name || backupHabit.name,
+      sortOrder: localHabit.sortOrder ?? backupHabit.sortOrder
+    }
+  }
+}
+
+// Settings management functions
+export const getSetting = async (key) => {
+  if (!db) await initDB()
+  
+  const transaction = db.transaction([SETTINGS_STORE], 'readonly')
+  const store = transaction.objectStore(SETTINGS_STORE)
+  
+  return new Promise((resolve, reject) => {
+    const request = store.get(key)
+    request.onsuccess = () => resolve(request.result?.value)
+    request.onerror = () => reject(request.error)
+  })
+}
+
+export const setSetting = async (key, value) => {
+  if (!db) await initDB()
+  
+  const transaction = db.transaction([SETTINGS_STORE], 'readwrite')
+  const store = transaction.objectStore(SETTINGS_STORE)
+  
+  return new Promise((resolve, reject) => {
+    const request = store.put({ key, value })
+    request.onsuccess = () => resolve()
+    request.onerror = () => reject(request.error)
+  })
+}
+
+// Sync tracking functions
+export const getLastSyncDate = async () => {
+  return await getSetting('lastSyncDate')
+}
+
+export const setLastSyncDate = async (date = new Date().toISOString().split('T')[0]) => {
+  await setSetting('lastSyncDate', date)
+}
+
+export const hasSyncedToday = async () => {
+  const lastSyncDate = await getLastSyncDate()
+  const today = new Date().toISOString().split('T')[0]
+  return lastSyncDate === today
+}
+

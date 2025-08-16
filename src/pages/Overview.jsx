@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getAllHabits, setHabitState, getHabitState } from '../utils/indexedDB'
 
 function Overview() {
+  const navigate = useNavigate()
   const [habits, setHabits] = useState([])
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -163,73 +165,74 @@ function Overview() {
   const isSelectedDateFuture = isFutureDate(selectedDateObj)
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-neutral-900 mb-2">Overview</h1>
-        <p className="text-neutral-600 text-lg">Track your daily habit progress</p>
-      </div>
+    <div className="max-w-5xl mx-auto p-4 sm:p-6">
       
       {/* Weekly Habit Overview */}
-      <div className="card p-8 mb-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-medium text-neutral-900">
+      <div className="card p-4 sm:p-6 lg:p-8 mb-6">
+        <div className="flex items-center justify-between mb-4 sm:mb-6">
+          {/* Left Navigation */}
+          <button
+            onClick={() => navigateWeek(-1)}
+            className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            title="Previous week"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          
+          {/* Center Title */}
+          <div className="flex-1 text-center">
+            <h2 className="text-xl sm:text-2xl font-medium text-neutral-900">
               {isCurrentWeek() ? 'This Week' : 'Week of ' + currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </h2>
-            <p className="text-neutral-600">Your weekly habit progress overview</p>
-          </div>
-          <div className="flex items-center gap-2">
             {!weekIncludesToday() && (
               <button
                 onClick={goToToday}
-                className="px-3 py-2 rounded-xl bg-primary-100 hover:bg-primary-200 text-primary-700 hover:text-primary-800 transition-colors text-sm font-medium"
+                className="mt-2 px-3 py-1 rounded-lg bg-primary-100 hover:bg-primary-200 text-primary-700 hover:text-primary-800 transition-colors text-sm font-medium"
                 title="Go to current week"
               >
                 Today
               </button>
             )}
-            <button
-              onClick={() => navigateWeek(-1)}
-              className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800 transition-colors"
-              title="Previous week"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-            <button
-              onClick={() => navigateWeek(1)}
-              disabled={!canNavigateNext()}
-              className={`p-2 rounded-xl transition-colors ${
-                canNavigateNext()
-                  ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800'
-                  : 'bg-neutral-50 text-neutral-300 cursor-not-allowed'
-              }`}
-              title="Next week"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
           </div>
+          
+          {/* Right Navigation */}
+          <button
+            onClick={() => navigateWeek(1)}
+            disabled={!canNavigateNext()}
+            className={`p-2 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
+              canNavigateNext()
+                ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800'
+                : 'bg-neutral-50 text-neutral-300 cursor-not-allowed'
+            }`}
+            title="Next week"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
         </div>
 
         {habits.length === 0 ? (
           <div className="text-center py-12">
-            <div className="w-16 h-16 bg-neutral-100 rounded-4xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <button
+              onClick={() => navigate('/habits')}
+              className="w-16 h-16 bg-neutral-200 hover:bg-neutral-300 rounded-4xl flex items-center justify-center mx-auto mb-4 transition-colors group"
+              title="Go to Habits page"
+            >
+              <svg className="w-8 h-8 text-neutral-500 group-hover:text-neutral-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-            </div>
+            </button>
             <p className="text-neutral-500 text-lg">No habits created yet</p>
-            <p className="text-neutral-400">Go to the Habits page to add your first habit</p>
+            <p className="text-neutral-400">Click the icon above to add your first habit</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <div className="min-w-full">
               {/* Header Row */}
-              <div className="grid gap-3 mb-4" style={{gridTemplateColumns: '200px repeat(7, 1fr)'}}>
-                <div></div> {/* Empty corner */}
+              <div className="grid gap-1 sm:gap-3 mb-2 sm:mb-4" style={{gridTemplateColumns: 'repeat(7, minmax(36px, 1fr))'}}>
                 {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
                   const date = getWeekDates()[index]
                   const dateStr = formatDate(date)
@@ -242,7 +245,7 @@ function Overview() {
                       key={day}
                       onClick={() => !isFuture && setSelectedDate(dateStr)}
                       disabled={isFuture}
-                      className={`text-center p-2 rounded-xl transition-colors ${
+                      className={`text-center p-0.5 sm:p-2 rounded sm:rounded-xl transition-colors w-full ${
                         isFuture
                           ? 'cursor-not-allowed opacity-50'
                           : isSelected
@@ -251,11 +254,12 @@ function Overview() {
                       }`}
                       title={isFuture ? 'Future date' : `Select ${date.toLocaleDateString()}`}
                     >
-                      <div className={`text-sm font-medium mb-1 ${
+                      <div className={`text-xs sm:text-sm font-medium mb-0.5 sm:mb-1 ${
                         isSelected ? 'text-primary-700' : 
                         isToday ? 'text-primary-600' : 'text-neutral-700'
                       }`}>
-                        {day}
+                        <span className="hidden sm:inline">{day}</span>
+                        <span className="sm:hidden">{day.slice(0, 1)}</span>
                         {isToday && <span className="ml-1">•</span>}
                       </div>
                       <div className={`text-xs ${
@@ -270,19 +274,7 @@ function Overview() {
               
               {/* Habit Rows */}
               {habits.map((habit) => (
-                <div key={habit.id} className="grid gap-3 mb-3" style={{gridTemplateColumns: '200px repeat(7, 1fr)'}}>
-                  {/* Habit Label */}
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 bg-primary-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                      <span className="material-symbols-outlined text-primary-600 text-lg">
-                        {habit.icon}
-                      </span>
-                    </div>
-                    <span className="text-sm text-neutral-800 font-medium" title={habit.name}>
-                      {habit.name}
-                    </span>
-                  </div>
-                  
+                <div key={habit.id} className="grid gap-1 sm:gap-3 mb-1 sm:mb-3" style={{gridTemplateColumns: 'repeat(7, minmax(36px, 1fr))'}}>
                   {/* Daily Status */}
                   {getWeekDates().map((date, dayIndex) => {
                     const dateStr = formatDate(date)
@@ -290,30 +282,28 @@ function Overview() {
                     const isFuture = isFutureDate(date)
                     
                     return (
-                      <div key={dayIndex} className="flex justify-center">
-                        <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
-                          isFuture
-                            ? 'bg-neutral-100'
-                            : habitState === 'completed'
-                              ? 'bg-green-100'
-                              : habitState === 'failed'
-                                ? 'bg-red-100'
-                                : 'bg-neutral-150'
-                        }`}>
-                          {isFuture ? (
-                            <span className="text-neutral-300 text-sm">−</span>
-                          ) : habitState === 'completed' ? (
-                            <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          ) : habitState === 'failed' ? (
-                            <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                            </svg>
-                          ) : (
-                            <div className="w-3 h-3 bg-neutral-400 rounded-full"></div>
-                          )}
-                        </div>
+                      <div key={dayIndex} className="flex justify-center items-center w-full">
+                        {isFuture ? (
+                          <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl flex items-center justify-center bg-neutral-100">
+                            <span className="text-neutral-300 text-xs sm:text-sm">−</span>
+                          </div>
+                        ) : habitState === 'completed' ? (
+                          <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl flex items-center justify-center bg-green-100" title={`${habit.name} - Completed`}>
+                            <span className="material-symbols-outlined text-green-600 text-sm sm:text-xl">
+                              {habit.icon}
+                            </span>
+                          </div>
+                        ) : habitState === 'failed' ? (
+                          <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl flex items-center justify-center bg-red-100" title={`${habit.name} - Failed`}>
+                            <span className="material-symbols-outlined text-red-600 text-sm sm:text-xl">
+                              {habit.icon}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-lg sm:rounded-2xl flex items-center justify-center bg-neutral-150" title={`${habit.name} - Not completed`}>
+                            <div className="w-1.5 h-1.5 sm:w-3 sm:h-3 bg-neutral-400 rounded-full"></div>
+                          </div>
+                        )}
                       </div>
                     )
                   })}
@@ -334,8 +324,8 @@ function Overview() {
 
 
       {/* Habits for Selected Day */}
-      <div className="card p-8">
-        <h3 className="text-2xl font-medium text-neutral-900 mb-4">
+      <div className="card p-4 sm:p-6 lg:p-8">
+        <h3 className="text-xl sm:text-2xl font-medium text-neutral-900 mb-4">
           Habits for {selectedDateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
         </h3>
         
@@ -344,14 +334,18 @@ function Overview() {
             <p className="text-neutral-500">Loading habits...</p>
           </div>
         ) : habits.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-neutral-100 rounded-4xl flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="text-center py-8 sm:py-12">
+            <button
+              onClick={() => navigate('/habits')}
+              className="w-12 h-12 sm:w-16 sm:h-16 bg-neutral-200 hover:bg-neutral-300 rounded-4xl flex items-center justify-center mx-auto mb-3 sm:mb-4 transition-colors group"
+              title="Go to Habits page"
+            >
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-500 group-hover:text-neutral-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
-            </div>
-            <p className="text-neutral-500 text-lg">No habits created yet</p>
-            <p className="text-neutral-400">Go to the Habits page to add your first habit</p>
+            </button>
+            <p className="text-neutral-500 text-base sm:text-lg">No habits created yet</p>
+            <p className="text-neutral-400 text-sm sm:text-base">Click the icon above to add your first habit</p>
           </div>
         ) : (
           <div className="space-y-4">

@@ -1,0 +1,14 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="192" height="192" rx="48" fill="#3b82f6"/>
+  
+  <!-- Checkmark Icon -->
+  <path d="M56 96L80 120L136 64" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Habit Dots -->
+  <circle cx="60" cy="140" r="4" fill="white" opacity="0.7"/>
+  <circle cx="80" cy="140" r="4" fill="white" opacity="0.9"/>
+  <circle cx="100" cy="140" r="4" fill="white"/>
+  <circle cx="120" cy="140" r="4" fill="white" opacity="0.7"/>
+  <circle cx="140" cy="140" r="4" fill="white" opacity="0.5"/>
+</svg>
