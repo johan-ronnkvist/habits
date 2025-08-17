@@ -161,7 +161,7 @@ function Settings() {
               <span className="material-symbols-outlined text-blue-600 text-2xl">cloud</span>
             </div>
             <div>
-              <h2 className="text-2xl font-medium text-neutral-900">Google Drive</h2>
+              <h2 className="text-2xl font-medium text-neutral-900">Cloud Sync</h2>
               <p className="text-neutral-600">Cloud backup and sync for your habit data</p>
             </div>
           </div>
