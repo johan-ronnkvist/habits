@@ -1,0 +1,24 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <!-- Material Design 3 Icon following 24dp grid system scaled to 256px -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#e99b4f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d7823a;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Material Design rounded square background (following keyline shapes) -->
+  <rect x="32" y="32" width="192" height="192" rx="48" ry="48" fill="url(#bg-gradient)" />
+  
+  <!-- Subtle elevation shadow -->
+  <rect x="32" y="32" width="192" height="192" rx="48" ry="48" fill="none" stroke="rgba(0,0,0,0.12)" stroke-width="1" />
+  
+  <!-- Material Design checkmark icon - scaled and positioned according to 24dp grid -->
+  <!-- Using Material Design's check icon proportions -->
+  <path d="M85.33 128 L117.33 160 L170.67 106.67" 
+        stroke="#ffffff" 
+        stroke-width="12" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" 
+        fill="none" />
+</svg>

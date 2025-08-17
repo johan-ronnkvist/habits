@@ -16,6 +16,8 @@ function GoogleDriveSync() {
   const [autoBackupTime, setAutoBackupTime] = useState('23:59')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleteStatus, setDeleteStatus] = useState(null) // 'success', 'error', null
+  const [showRestoreModal, setShowRestoreModal] = useState(false)
+  const [pendingBackupData, setPendingBackupData] = useState(null)
 
   useEffect(() => {
     // Load last sync date from localStorage
@@ -133,6 +135,34 @@ function GoogleDriveSync() {
       // Save sign-in state to localStorage
       localStorage.setItem('googleDriveSignedIn', 'true')
       localStorage.setItem('googleDriveUserEmail', userEmail || 'Google Account')
+      
+      // Check for existing backup and compare with local data
+      console.log('🔄 Checking for existing backup...')
+      try {
+        const latestBackup = await googleDriveSync.getLatestBackup()
+        if (latestBackup) {
+          console.log('📥 Found existing backup, comparing with local data...')
+          
+          // Get current local habits
+          const localHabits = await getAllHabits()
+          
+          // Compare backup data with local data
+          const hasSignificantDifferences = await compareHabitsData(localHabits, latestBackup.habits || [])
+          
+          if (hasSignificantDifferences) {
+            console.log('🔍 Found significant differences, showing restore modal...')
+            setPendingBackupData(latestBackup)
+            setShowRestoreModal(true)
+          } else {
+            console.log('✅ Backup data matches local data, no restore needed')
+          }
+        } else {
+          console.log('ℹ️ No existing backup found after sign-in')
+        }
+      } catch (checkErr) {
+        console.error('❌ Failed to check for backup after sign-in:', checkErr)
+        // Don't show error for backup check failure, just log it
+      }
     } catch (err) {
       console.error('Sign in failed:', err)
       setError(err.message || 'Failed to sign in to Google Drive')
@@ -338,6 +368,44 @@ function GoogleDriveSync() {
     }
   }
 
+  // Handle restore modal actions
+  const handleRestoreFromModal = async (strategy = 'merge') => {
+    if (!pendingBackupData) return
+
+    setIsLoading(true)
+    setError(null)
+    setRestoreStatus(null)
+    setShowRestoreModal(false)
+
+    try {
+      const result = await restoreHabitsFromBackup(pendingBackupData, strategy)
+      
+      setRestoreStatus('success')
+      console.log(`✅ Successfully restored habits from modal:`, result)
+      
+      // Track sync date in IndexedDB for auto-sync logic
+      await setLastSyncDate()
+      
+      // Refresh the page to show updated habits
+      setTimeout(() => {
+        window.location.reload()
+      }, 2000)
+    } catch (err) {
+      console.error('Restore from modal failed:', err)
+      setRestoreStatus('error')
+      setError(err.message || 'Failed to restore from backup')
+    } finally {
+      setIsLoading(false)
+      setPendingBackupData(null)
+    }
+  }
+
+  const handleSkipRestore = () => {
+    setShowRestoreModal(false)
+    setPendingBackupData(null)
+    console.log('ℹ️ User chose to skip restore after sign-in')
+  }
+
   // Delete all backups functionality
   const handleDeleteAllBackups = async () => {
     if (!isSignedIn) {
@@ -375,6 +443,90 @@ function GoogleDriveSync() {
       setShowDeleteConfirm(false)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Compare local habits with backup habits to determine if restore is needed
+  const compareHabitsData = async (localHabits, backupHabits) => {
+    try {
+      // If number of habits is different, there are significant differences
+      if (localHabits.length !== backupHabits.length) {
+        console.log(`📊 Different habit counts: local(${localHabits.length}) vs backup(${backupHabits.length})`)
+        return true
+      }
+      
+      // If no habits locally but backup has habits, significant difference
+      if (localHabits.length === 0 && backupHabits.length > 0) {
+        return true
+      }
+      
+      // If no habits in backup but local has habits, no need to restore
+      if (backupHabits.length === 0) {
+        return false
+      }
+      
+      // Create maps for easier comparison
+      const localHabitsMap = new Map(localHabits.map(h => [h.id, h]))
+      const backupHabitsMap = new Map(backupHabits.map(h => [h.id, h]))
+      
+      // Check for habits that exist in backup but not locally
+      for (const backupHabit of backupHabits) {
+        if (!localHabitsMap.has(backupHabit.id)) {
+          console.log(`📊 Backup has habit not in local: ${backupHabit.name}`)
+          return true
+        }
+      }
+      
+      // Check for habits that exist locally but not in backup
+      for (const localHabit of localHabits) {
+        if (!backupHabitsMap.has(localHabit.id)) {
+          console.log(`📊 Local has habit not in backup: ${localHabit.name}`)
+          return true
+        }
+      }
+      
+      // Check for differences in completion data for matching habits
+      for (const localHabit of localHabits) {
+        const backupHabit = backupHabitsMap.get(localHabit.id)
+        if (backupHabit) {
+          // Compare completion dates
+          const localCompleted = new Set(localHabit.completedDates || [])
+          const backupCompleted = new Set(backupHabit.completedDates || [])
+          
+          // Compare failed dates
+          const localFailed = new Set(localHabit.failedDates || [])
+          const backupFailed = new Set(backupHabit.failedDates || [])
+          
+          // Check if completion data differs significantly
+          const completedDiff = localCompleted.size !== backupCompleted.size ||
+            ![...localCompleted].every(date => backupCompleted.has(date)) ||
+            ![...backupCompleted].every(date => localCompleted.has(date))
+            
+          const failedDiff = localFailed.size !== backupFailed.size ||
+            ![...localFailed].every(date => backupFailed.has(date)) ||
+            ![...backupFailed].every(date => localFailed.has(date))
+          
+          if (completedDiff || failedDiff) {
+            console.log(`📊 Completion data differs for habit: ${localHabit.name}`)
+            return true
+          }
+          
+          // Check if habit properties differ (name, description, icon)
+          if (localHabit.name !== backupHabit.name || 
+              localHabit.description !== backupHabit.description ||
+              localHabit.icon !== backupHabit.icon) {
+            console.log(`📊 Habit properties differ for: ${localHabit.name}`)
+            return true
+          }
+        }
+      }
+      
+      console.log('✅ No significant differences found between local and backup data')
+      return false
+    } catch (err) {
+      console.error('❌ Error comparing habits data:', err)
+      // If comparison fails, show restore modal to be safe
+      return true
     }
   }
 
@@ -572,7 +724,7 @@ function GoogleDriveSync() {
             <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
-            <span>Successfully restored habits from backup! Refreshing...</span>
+            <span>Successfully restored habits from Google Drive! Refreshing...</span>
           </div>
         )}
 
@@ -708,6 +860,67 @@ function GoogleDriveSync() {
             </div>
           </div>
         )}
+
+      {/* Restore Modal */}
+      {showRestoreModal && pendingBackupData && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-md mx-4 shadow-xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-neutral-900">Restore from Google Drive</h3>
+                <p className="text-sm text-neutral-600">We found existing habit data</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3 mb-6">
+              <p className="text-sm text-neutral-700">
+                We found a backup with <strong>{pendingBackupData.habits?.length || 0} habits</strong> from {new Date(pendingBackupData.exportDate).toLocaleDateString()}.
+              </p>
+              <p className="text-sm text-neutral-700">
+                Would you like to restore this data?
+              </p>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-xs text-blue-800">
+                  <strong>Merge:</strong> Combines your current habits with backup data<br/>
+                  <strong>Replace:</strong> Deletes all current habits and uses only backup data<br/>
+                  <strong>Skip:</strong> Keep only your current local data
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleRestoreFromModal('merge')}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                >
+                  {isLoading ? 'Restoring...' : 'Merge'}
+                </button>
+                <button
+                  onClick={() => handleRestoreFromModal('replace')}
+                  disabled={isLoading}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {isLoading ? 'Restoring...' : 'Replace'}
+                </button>
+              </div>
+              <button
+                onClick={handleSkipRestore}
+                disabled={isLoading}
+                className="w-full px-4 py-2 text-sm font-medium text-neutral-700 bg-neutral-100 rounded-lg hover:bg-neutral-200 disabled:opacity-50 transition-colors"
+              >
+                Skip - Keep Local Data Only
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

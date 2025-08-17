@@ -430,3 +430,28 @@ export const hasSyncedToday = async () => {
   return lastSyncDate === today
 }
 
+// Migrate habits with invalid icons to valid ones
+export const migrateHabitIcons = async (validIconIds) => {
+  if (!db) await initDB()
+  
+  const habits = await getAllHabits()
+  const validIconSet = new Set(validIconIds)
+  const defaultIcon = validIconIds[0] || 'fitness_center'
+  
+  let updatedCount = 0
+  
+  for (const habit of habits) {
+    if (!validIconSet.has(habit.icon)) {
+      console.log(`🔄 Migrating habit "${habit.name}" from invalid icon "${habit.icon}" to "${defaultIcon}"`)
+      await updateHabit(habit.id, { icon: defaultIcon })
+      updatedCount++
+    }
+  }
+  
+  if (updatedCount > 0) {
+    console.log(`✅ Migrated ${updatedCount} habits to use valid icons`)
+  }
+  
+  return updatedCount
+}
+
