@@ -213,9 +213,9 @@ function Overview() {
       {showSyncNotification && (
         <div className="mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
           <div className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0 mt-0.5">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m3 3V10" />
-            </svg>
+            <span className="material-symbols-outlined text-lg sm:text-xl">
+              cloud_sync
+            </span>
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="font-medium text-blue-900 text-sm sm:text-base">Backup Your Habits</h4>
