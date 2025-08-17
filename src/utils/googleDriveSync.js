@@ -11,6 +11,71 @@ class GoogleDriveSync {
     this.isSignedIn = false
     this.accessToken = null
     this.tokenClient = null
+    this.refreshToken = null
+    this.tokenExpiry = null
+    
+    // Try to restore tokens from localStorage on init
+    this.restoreTokensFromStorage()
+  }
+  
+  // Store tokens in localStorage for persistence
+  storeTokens(accessToken, expiresIn) {
+    this.accessToken = accessToken
+    this.tokenExpiry = Date.now() + (expiresIn * 1000) // Convert seconds to milliseconds
+    
+    localStorage.setItem('google_access_token', accessToken)
+    localStorage.setItem('google_token_expiry', this.tokenExpiry.toString())
+    
+    console.log('💾 Stored tokens in localStorage')
+  }
+  
+  // Restore tokens from localStorage
+  restoreTokensFromStorage() {
+    const storedToken = localStorage.getItem('google_access_token')
+    const storedExpiry = localStorage.getItem('google_token_expiry')
+    
+    if (storedToken && storedExpiry) {
+      const expiry = parseInt(storedExpiry)
+      const now = Date.now()
+      
+      // Check if token is still valid (with 5 minute buffer)
+      if (expiry > now + (5 * 60 * 1000)) {
+        this.accessToken = storedToken
+        this.tokenExpiry = expiry
+        this.isSignedIn = true
+        console.log('✅ Restored valid access token from localStorage')
+        return true
+      } else {
+        console.log('⚠️ Stored token has expired, will need to re-authenticate')
+        this.clearStoredTokens()
+      }
+    }
+    return false
+  }
+  
+  // Clear stored tokens
+  clearStoredTokens() {
+    this.accessToken = null
+    this.tokenExpiry = null
+    this.isSignedIn = false
+    
+    localStorage.removeItem('google_access_token')
+    localStorage.removeItem('google_token_expiry')
+    
+    console.log('🗑️ Cleared stored tokens')
+  }
+  
+  // Check if current token is valid and not expired
+  isTokenValid() {
+    if (!this.accessToken || !this.tokenExpiry) {
+      return false
+    }
+    
+    // Check if token expires in next 5 minutes
+    const now = Date.now()
+    const bufferTime = 5 * 60 * 1000 // 5 minutes
+    
+    return this.tokenExpiry > (now + bufferTime)
   }
 
   // Initialize Google API using new Google Identity Services
@@ -70,14 +135,18 @@ class GoogleDriveSync {
       this.tokenClient = window.google.accounts.oauth2.initTokenClient({
         client_id: clientId,
         scope: SCOPES,
+        include_granted_scopes: true,
         callback: (response) => {
           if (response.error) {
             console.error('Token response error:', response.error)
             return
           }
-          this.accessToken = response.access_token
+          
+          // Store tokens with expiry information
+          const expiresIn = response.expires_in || 3600 // Default 1 hour
+          this.storeTokens(response.access_token, expiresIn)
           this.isSignedIn = true
-          console.log('✅ Access token received')
+          console.log('✅ Access token received and stored')
         }
       })
       console.log('✅ GIS token client initialized')
@@ -106,9 +175,16 @@ class GoogleDriveSync {
     }
 
     try {
-      if (this.isSignedIn && this.accessToken) {
-        console.log('ℹ️ Already signed in to Google Drive')
+      // Check if we have a valid stored token
+      if (this.isSignedIn && this.isTokenValid()) {
+        console.log('✅ Using existing valid token, already signed in')
         return true
+      }
+      
+      // Clear expired tokens
+      if (this.accessToken && !this.isTokenValid()) {
+        console.log('⚠️ Current token expired, clearing and requesting new one')
+        this.clearStoredTokens()
       }
 
       console.log('🔄 Starting Google sign-in flow with GIS...')
@@ -121,14 +197,17 @@ class GoogleDriveSync {
             reject(new Error(`Google sign-in failed: ${response.error}`))
             return
           }
-          this.accessToken = response.access_token
+          
+          // Store tokens with expiry information
+          const expiresIn = response.expires_in || 3600 // Default 1 hour
+          this.storeTokens(response.access_token, expiresIn)
           this.isSignedIn = true
           console.log('✅ Successfully signed in to Google Drive with GIS')
           resolve(true)
         }
         
-        // Request access token
-        this.tokenClient.requestAccessToken()
+        // Request access token (will prompt user if needed)
+        this.tokenClient.requestAccessToken({ prompt: '' })
       })
     } catch (error) {
       console.error('❌ Failed to sign in to Google Drive:', error)
@@ -138,27 +217,36 @@ class GoogleDriveSync {
 
   // Sign out from Google
   async signOut() {
-    if (!this.isInitialized || !this.isSignedIn) {
-      return
-    }
-
     try {
       if (this.accessToken) {
         // Revoke the access token
         window.google.accounts.oauth2.revoke(this.accessToken)
+        console.log('🔐 Revoked access token')
       }
-      this.accessToken = null
-      this.isSignedIn = false
+      
+      // Clear all stored tokens and state
+      this.clearStoredTokens()
       console.log('✅ Successfully signed out from Google Drive')
     } catch (error) {
       console.error('❌ Failed to sign out from Google Drive:', error)
+      // Even if revocation fails, clear local tokens
+      this.clearStoredTokens()
       throw error
     }
   }
 
   // Check if user is currently signed in
   getSignInStatus() {
-    return this.isSignedIn && !!this.accessToken
+    return this.isSignedIn && this.isTokenValid()
+  }
+
+  // Ensure we have a valid token before making API calls
+  async ensureValidToken() {
+    if (!this.isSignedIn || !this.isTokenValid()) {
+      console.log('🔄 Token invalid or expired, attempting to refresh...')
+      await this.signIn()
+    }
+    return this.isTokenValid()
   }
 
   // Get current user's email (note: with token-based auth, email isn't directly available)
@@ -211,6 +299,8 @@ class GoogleDriveSync {
 
   // Upload habit data to Google Drive (single file approach)
   async uploadHabits(habitsData) {
+    await this.ensureValidToken()
+    
     if (!this.isSignedIn) {
       throw new Error('Please sign in to Google Drive first')
     }
@@ -312,6 +402,8 @@ class GoogleDriveSync {
 
   // Get backup file from Google Drive (single file approach)
   async listBackupFiles() {
+    await this.ensureValidToken()
+    
     if (!this.isSignedIn) {
       throw new Error('Please sign in to Google Drive first')
     }
@@ -403,6 +495,8 @@ class GoogleDriveSync {
 
   // Delete backup file from Google Drive
   async deleteAllBackups() {
+    await this.ensureValidToken()
+    
     if (!this.isSignedIn) {
       throw new Error('Please sign in to Google Drive first')
     }

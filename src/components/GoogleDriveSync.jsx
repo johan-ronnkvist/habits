@@ -68,6 +68,8 @@ function GoogleDriveSync() {
     try {
       console.log('🔍 Checking actual Google Drive sign-in status...')
       await googleDriveSync.init()
+      
+      // The googleDriveSync now automatically restores tokens from localStorage
       const actualSignedIn = googleDriveSync.getSignInStatus()
       const cachedSignedIn = localStorage.getItem('googleDriveSignedIn') === 'true'
       
@@ -84,7 +86,7 @@ function GoogleDriveSync() {
       if (actualSignedIn) {
         const userEmail = googleDriveSync.getUserEmail()
         setUserEmail(userEmail)
-        console.log('✅ Confirmed signed in to Google Drive')
+        console.log('✅ Confirmed signed in to Google Drive (with valid token)')
         
         // Save current state to localStorage
         localStorage.setItem('googleDriveSignedIn', 'true')
@@ -101,7 +103,7 @@ function GoogleDriveSync() {
           signedIn: true
         })
       } else {
-        console.log('ℹ️ Confirmed not signed in to Google Drive')
+        console.log('ℹ️ Not signed in or token expired')
         setUserEmail(null)
         
         // Clear cached state
