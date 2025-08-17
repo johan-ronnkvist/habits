@@ -11,7 +11,7 @@ function GoogleDriveSync() {
   const [error, setError] = useState(null)
   const [backupFiles, setBackupFiles] = useState([])
   const [restoreStatus, setRestoreStatus] = useState(null) // 'success', 'error', null
-  const [showBackupList, setShowBackupList] = useState(false)
+  const [showBackupModal, setShowBackupModal] = useState(false)
   const [autoBackupEnabled, setAutoBackupEnabled] = useState(false)
   const [autoBackupTime, setAutoBackupTime] = useState('23:59')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
@@ -68,8 +68,26 @@ function GoogleDriveSync() {
     try {
       console.log('🔍 Checking actual Google Drive sign-in status...')
       await googleDriveSync.init()
-      const actualSignedIn = googleDriveSync.getSignInStatus()
+      
+      // The googleDriveSync now automatically restores tokens from localStorage and handles refresh
+      let actualSignedIn = googleDriveSync.getSignInStatus()
       const cachedSignedIn = localStorage.getItem('googleDriveSignedIn') === 'true'
+      
+      // If not signed in but we have cached state, try to validate/refresh tokens
+      if (!actualSignedIn && cachedSignedIn) {
+        console.log('🔄 Cached state indicates signed in but current state is not, attempting token validation...')
+        try {
+          // This will attempt to refresh tokens if needed
+          await googleDriveSync.ensureValidToken()
+          actualSignedIn = googleDriveSync.getSignInStatus()
+          
+          if (actualSignedIn) {
+            console.log('✅ Successfully refreshed authentication from cached tokens')
+          }
+        } catch (refreshErr) {
+          console.log('❌ Failed to refresh tokens, will require new sign-in:', refreshErr.message)
+        }
+      }
       
       // Check if cached state differs from actual state
       if (actualSignedIn !== cachedSignedIn) {
@@ -84,7 +102,7 @@ function GoogleDriveSync() {
       if (actualSignedIn) {
         const userEmail = googleDriveSync.getUserEmail()
         setUserEmail(userEmail)
-        console.log('✅ Confirmed signed in to Google Drive')
+        console.log('✅ Confirmed signed in to Google Drive (with valid token)')
         
         // Save current state to localStorage
         localStorage.setItem('googleDriveSignedIn', 'true')
@@ -101,7 +119,7 @@ function GoogleDriveSync() {
           signedIn: true
         })
       } else {
-        console.log('ℹ️ Confirmed not signed in to Google Drive')
+        console.log('ℹ️ Not signed in or token expired')
         setUserEmail(null)
         
         // Clear cached state
@@ -248,7 +266,7 @@ function GoogleDriveSync() {
     try {
       const files = await googleDriveSync.listBackupFiles()
       setBackupFiles(files)
-      setShowBackupList(true)
+      setShowBackupModal(true)
       console.log(`📁 Found ${files.length} backup files`)
     } catch (err) {
       console.error('Failed to list backups:', err)
@@ -268,7 +286,7 @@ function GoogleDriveSync() {
       const result = await restoreHabitsFromBackup(backupData, strategy)
       
       setRestoreStatus('success')
-      setShowBackupList(false)
+      setShowBackupModal(false)
       console.log(`✅ Successfully restored habits:`, result)
       
       // Track sync date in IndexedDB for auto-sync logic
@@ -751,66 +769,83 @@ function GoogleDriveSync() {
         )}
       </div>
 
-      {/* Backup Files List */}
-      {showBackupList && backupFiles.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium text-neutral-900">Available Backups</h4>
+      {/* Backup Files Modal */}
+      {showBackupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 max-w-2xl mx-4 shadow-xl max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-neutral-900">Restore from Google Drive</h3>
+                <p className="text-sm text-neutral-600">
+                  {backupFiles.length > 0 ? `Found ${backupFiles.length} backup${backupFiles.length === 1 ? '' : 's'}` : 'No backups found'}
+                </p>
+              </div>
               <button 
-                onClick={() => setShowBackupList(false)}
-                className="text-sm text-neutral-500 hover:text-neutral-700"
+                onClick={() => setShowBackupModal(false)}
+                className="text-neutral-400 hover:text-neutral-600"
               >
-                Cancel
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
-            <div className="space-y-2 max-h-48 overflow-y-auto">
-              {backupFiles.map((file) => (
-                <div key={file.id} className="flex items-center justify-between p-3 bg-neutral-50 rounded-lg">
-                  <div>
-                    <div className="font-medium text-sm text-neutral-900">
-                      {file.name.replace('better-habits-backup-', '').replace('.json', '')}
-                    </div>
-                    <div className="text-xs text-neutral-500">
-                      {new Date(file.createdTime).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleRestore(file.id, 'merge')}
-                      disabled={isLoading}
-                      className="text-xs px-3 py-1 bg-primary-600 text-white rounded hover:bg-primary-700 disabled:opacity-50"
-                    >
-                      Merge
-                    </button>
-                    <button
-                      onClick={() => handleRestore(file.id, 'replace')}
-                      disabled={isLoading}
-                      className="text-xs px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 disabled:opacity-50"
-                    >
-                      Replace
-                    </button>
+            
+            {backupFiles.length > 0 ? (
+              <>
+                <div className="flex-1 overflow-y-auto mb-4">
+                  <div className="space-y-3">
+                    {backupFiles.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
+                        <div className="flex-1">
+                          <div className="font-medium text-neutral-900">
+                            {file.name.replace('better-habits-backup-', '').replace('.json', '')}
+                          </div>
+                          <div className="text-sm text-neutral-500">
+                            {file.modifiedTime ? new Date(file.modifiedTime).toLocaleString() : 'Date unknown'}
+                          </div>
+                        </div>
+                        <div className="flex gap-2 ml-4">
+                          <button
+                            onClick={() => handleRestore(file.id, 'merge')}
+                            disabled={isLoading}
+                            className="px-4 py-2 text-sm font-medium text-white bg-primary-600 rounded-lg hover:bg-primary-700 disabled:opacity-50 transition-colors"
+                          >
+                            {isLoading ? 'Restoring...' : 'Merge'}
+                          </button>
+                          <button
+                            onClick={() => handleRestore(file.id, 'replace')}
+                            disabled={isLoading}
+                            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors"
+                          >
+                            {isLoading ? 'Restoring...' : 'Replace'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
-            <div className="p-3 bg-blue-50 rounded-lg text-xs text-blue-800">
-              <strong>Merge:</strong> Combines your current habits with backup data<br/>
-              <strong>Replace:</strong> Deletes all current habits and uses only backup data
-            </div>
+                <div className="p-4 bg-blue-50 rounded-lg text-sm text-blue-800">
+                  <strong>Merge:</strong> Combines your current habits with backup data<br/>
+                  <strong>Replace:</strong> Deletes all current habits and uses only backup data
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <svg className="w-16 h-16 text-neutral-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-neutral-600 mb-4">No backup files found in your Google Drive.</p>
+                <p className="text-sm text-neutral-500">Create a backup first to see restore options here.</p>
+              </div>
+            )}
           </div>
-        )}
-
-      {showBackupList && backupFiles.length === 0 && (
-          <div className="p-4 bg-neutral-50 rounded-lg text-center">
-            <p className="text-sm text-neutral-600">No backup files found in your Google Drive.</p>
-            <button 
-              onClick={() => setShowBackupList(false)}
-              className="text-sm text-primary-600 hover:text-primary-700 mt-2"
-            >
-              Close
-            </button>
-          </div>
-        )}
+        </div>
+      )}
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (

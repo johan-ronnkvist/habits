@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import Navbar from './components/Navbar'
 import Overview from './pages/Overview'
@@ -7,8 +7,11 @@ import History from './pages/History'
 import Settings from './pages/Settings'
 import { initDB, hasSyncedToday, setLastSyncDate, restoreHabitsFromBackup } from './utils/indexedDB'
 import googleDriveSync from './utils/googleDriveSync'
+import { ThemeProvider, useTheme } from './contexts/ThemeContext'
 
-function App() {
+function AppContent() {
+  const { restoreSettingsFromBackup } = useTheme()
+
   useEffect(() => {
     const initializeApp = async () => {
       try {
@@ -21,9 +24,13 @@ function App() {
         const autoSyncResult = await googleDriveSync.autoSyncIfNeeded(hasSyncedToday, setLastSyncDate)
         
         if (autoSyncResult.initiated && autoSyncResult.backupData) {
-          console.log('🔄 Auto-sync initiated, restoring data...')
+          console.log('🔄 Auto-sync initiated, restoring data silently with merge...')
           try {
             const result = await restoreHabitsFromBackup(autoSyncResult.backupData, 'merge')
+            
+            // Restore theme and other settings
+            restoreSettingsFromBackup(autoSyncResult.backupData)
+            
             await setLastSyncDate()
             console.log('✅ Auto-sync completed:', result)
             
@@ -45,7 +52,7 @@ function App() {
     }
     
     initializeApp()
-  }, [])
+  }, [restoreSettingsFromBackup])
 
   return (
     <Router>
@@ -61,6 +68,14 @@ function App() {
         </main>
       </div>
     </Router>
+  )
+}
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   )
 }
 

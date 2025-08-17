@@ -2,8 +2,8 @@
   <!-- Material Design 3 Icon following 24dp grid system scaled to 256px -->
   <defs>
     <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#e99b4f;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#d7823a;stop-opacity:1" />
+      <stop offset="0%" style="stop-color:var(--color-secondary-500, #ff9800);stop-opacity:1" />
+      <stop offset="100%" style="stop-color:var(--color-secondary-600, #fb8c00);stop-opacity:1" />
     </linearGradient>
   </defs>
   
@@ -16,7 +16,7 @@
   <!-- Material Design checkmark icon - scaled and positioned according to 24dp grid -->
   <!-- Using Material Design's check icon proportions -->
   <path d="M85.33 128 L117.33 160 L170.67 106.67" 
-        stroke="#ffffff" 
+        stroke="var(--color-surface, #ffffff)" 
         stroke-width="12" 
         stroke-linecap="round" 
         stroke-linejoin="round" 

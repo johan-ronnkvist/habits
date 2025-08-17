@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { notificationService } from '../utils/notificationService'
 import GoogleDriveSync from '../components/GoogleDriveSync'
+import { useTheme } from '../contexts/ThemeContext'
 
 function Settings() {
+  const { currentTheme, availableThemes, changeTheme } = useTheme()
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [isInstallable, setIsInstallable] = useState(false)
   const [reminderEnabled, setReminderEnabled] = useState(false)
@@ -90,6 +92,63 @@ function Settings() {
     <div className="max-w-5xl mx-auto p-6">
       
       <div className="space-y-6">
+        {/* Theme Selection */}
+        <div className="card p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-primary-100 rounded-3xl flex items-center justify-center">
+              <span className="material-symbols-outlined text-primary-600 text-2xl">palette</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-medium text-neutral-900">Appearance</h2>
+              <p className="text-neutral-600">Choose a theme that fits your style</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {availableThemes.map((theme) => (
+              <div
+                key={theme.id}
+                onClick={() => changeTheme(theme.id)}
+                className={`
+                  relative cursor-pointer p-6 rounded-2xl border-2 transition-all
+                  ${currentTheme.id === theme.id 
+                    ? 'border-primary-500 bg-primary-50' 
+                    : 'border-neutral-200 bg-white hover:border-primary-300 hover:bg-primary-25'
+                  }
+                `}
+              >
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="text-2xl">{theme.icon}</div>
+                  <div>
+                    <h3 className="font-medium text-neutral-900">{theme.name}</h3>
+                    <p className="text-sm text-neutral-600">{theme.description}</p>
+                  </div>
+                  {currentTheme.id === theme.id && (
+                    <div className="ml-auto">
+                      <span className="material-symbols-outlined text-primary-600">check_circle</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Theme color preview */}
+                <div className="flex gap-2">
+                  <div 
+                    className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                    style={{ backgroundColor: theme.colors['primary-500'] }}
+                  ></div>
+                  <div 
+                    className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                    style={{ backgroundColor: theme.colors['secondary-500'] || theme.colors['primary-300'] }}
+                  ></div>
+                  <div 
+                    className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                    style={{ backgroundColor: theme.colors['tertiary-500'] || theme.colors['primary-700'] }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="card p-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-primary-100 rounded-3xl flex items-center justify-center">
@@ -173,9 +232,9 @@ function Settings() {
         <div className="card p-8">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 bg-primary-100 rounded-3xl flex items-center justify-center">
-              <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
-              </svg>
+              <span className="material-symbols-outlined text-primary-600 text-2xl">
+                smartphone
+              </span>
             </div>
             <div>
               <h2 className="text-2xl font-medium text-neutral-900">Install App</h2>
@@ -189,9 +248,9 @@ function Settings() {
                 onClick={handleInstall}
                 className="btn-primary flex items-center gap-2"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+                <span className="material-symbols-outlined text-lg">
+                  download
+                </span>
                 Install Better Habits
               </button>
             ) : (

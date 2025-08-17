@@ -4,6 +4,7 @@
 @theme {
   --font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
   
+  /* Primary colors - will be overridden by theme system */
   --color-primary-50: #fefaf5;
   --color-primary-100: #fdf2e9;
   --color-primary-200: #fae3d0;
@@ -16,6 +17,33 @@
   --color-primary-900: #744629;
   --color-primary-950: #3e2414;
   
+  /* Secondary colors - for theme system */
+  --color-secondary-50: #fff3e0;
+  --color-secondary-100: #ffe0b3;
+  --color-secondary-200: #ffcc80;
+  --color-secondary-300: #ffb74d;
+  --color-secondary-400: #ffa726;
+  --color-secondary-500: #ff9800;
+  --color-secondary-600: #fb8c00;
+  --color-secondary-700: #f57c00;
+  --color-secondary-800: #ef6c00;
+  --color-secondary-900: #e65100;
+  --color-secondary-950: #bf360c;
+  
+  /* Tertiary colors - for theme system */
+  --color-tertiary-50: #e0f2f1;
+  --color-tertiary-100: #b2dfdb;
+  --color-tertiary-200: #80cbc4;
+  --color-tertiary-300: #4db6ac;
+  --color-tertiary-400: #26a69a;
+  --color-tertiary-500: #009688;
+  --color-tertiary-600: #00897b;
+  --color-tertiary-700: #00796b;
+  --color-tertiary-800: #00695c;
+  --color-tertiary-900: #004d40;
+  --color-tertiary-950: #002825;
+  
+  /* Neutral colors */
   --color-neutral-50: #fafafa;
   --color-neutral-100: #f5f5f5;
   --color-neutral-200: #e5e5e5;
@@ -28,18 +56,23 @@
   --color-neutral-900: #171717;
   --color-neutral-950: #0a0a0a;
   
+  /* Surface colors - will be overridden by theme system */
   --color-surface: #fffbf5;
   --color-surface-variant: #fef7f0;
   --color-surface-container: #fdf2e9;
+  --color-background: #ffffff;
   
+  /* Outline colors */
   --color-outline: #79747e;
   --color-outline-variant: #cac4d0;
   
+  /* Elevation shadows */
   --shadow-elevation-1: 0px 1px 3px 1px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.30);
   --shadow-elevation-2: 0px 2px 6px 2px rgba(0, 0, 0, 0.15), 0px 1px 2px 0px rgba(0, 0, 0, 0.30);
   --shadow-elevation-3: 0px 1px 3px 0px rgba(0, 0, 0, 0.30), 0px 4px 8px 3px rgba(0, 0, 0, 0.15);
   --shadow-elevation-4: 0px 2px 3px 0px rgba(0, 0, 0, 0.30), 0px 6px 10px 4px rgba(0, 0, 0, 0.15);
   
+  /* Border radius */
   --radius-4xl: 2rem;
   --radius-5xl: 2.5rem;
 }
