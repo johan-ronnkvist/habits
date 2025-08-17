@@ -70,6 +70,17 @@ npm run preview
 - Keep the UI clean and mobile-responsive
 - Maintain the minimal, focused feature set
 
+## Versioning and Commits
+
+- This project uses **semantic versioning** with automated releases
+- Follow **conventional commit format** for all commits:
+  - `feat:` for new features (minor version bump)
+  - `fix:` for bug fixes (patch version bump)
+  - `docs:` for documentation changes (no version bump)
+  - `chore:` for maintenance tasks (no version bump)
+- GitHub Actions automatically handles version bumping and releases
+- See CONTRIBUTING.md for detailed commit message guidelines
+
 ## Learning Instructions
 - User is new to frontend development and wants to learn
 - Provide technical explanations with basic concepts explained

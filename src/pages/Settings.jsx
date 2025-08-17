@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { notificationService } from '../utils/notificationService'
 import GoogleDriveSync from '../components/GoogleDriveSync'
 import { useTheme } from '../contexts/ThemeContext'
+import { getVersionInfo } from '../utils/version'
 
 function Settings() {
   const { currentTheme, availableThemes, changeTheme } = useTheme()
@@ -266,6 +267,30 @@ function Settings() {
                 </ul>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* App Version Section */}
+        <div className="card p-8">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 bg-purple-100 rounded-3xl flex items-center justify-center">
+              <span className="material-symbols-outlined text-purple-600 text-2xl">
+                info
+              </span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-medium text-neutral-900">About</h2>
+              <p className="text-neutral-600">App version and information</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="p-4 bg-neutral-50 rounded-2xl">
+              <div className="flex justify-between items-center">
+                <span className="text-neutral-600 font-medium">Version</span>
+                <span className="text-neutral-900 font-mono text-lg">{getVersionInfo().fullVersion}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
