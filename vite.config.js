@@ -3,11 +3,11 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     react(),
     // Disable PWA during development for debug sessions
-    ...(import.meta.env.MODE !== 'development' ? [
+    ...(mode !== 'development' ? [
       VitePWA({
         registerType: 'prompt',
         injectRegister: false,
@@ -43,9 +43,13 @@ export default defineConfig({
   ],
   server: {
     headers: {
-      // Allow OAuth popup communication
-      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
-      'Cross-Origin-Embedder-Policy': 'unsafe-none'
+      // Disable caching for development
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache',
+      'Expires': '0'
+    },
+    hmr: {
+      clientPort: 5173
     }
   }
-})
+}))

@@ -52,7 +52,16 @@ class GoogleDriveSync {
         this.tokenExpiry = expiry
         this.refreshToken = storedRefreshToken
         this.isSignedIn = true
-        console.log('✅ Restored valid access token from localStorage')
+        
+        // Set the token in gapi client for API calls
+        if (window.gapi?.client?.setToken) {
+          window.gapi.client.setToken({
+            access_token: storedToken
+          })
+          console.log('✅ Restored valid access token from localStorage and set in gapi client')
+        } else {
+          console.log('✅ Restored valid access token from localStorage')
+        }
         return true
       } else {
         console.log('⚠️ Stored access token has expired')
@@ -222,32 +231,20 @@ class GoogleDriveSync {
           
           // Store tokens with expiry information
           const expiresIn = response.expires_in || 3600 // Default 1 hour
-          // Note: GIS doesn't provide refresh tokens directly, but we can get them through authorization code flow
           this.storeTokens(response.access_token, expiresIn)
+          
+          // Set the token in gapi client for API calls
+          window.gapi.client.setToken({
+            access_token: response.access_token
+          })
+          
           this.isSignedIn = true
-          console.log('✅ Access token received and stored')
+          console.log('✅ Access token received, stored, and set in gapi client')
         }
       })
       
-      // Also initialize a code client for getting refresh tokens
-      this.codeClient = window.google.accounts.oauth2.initCodeClient({
-        client_id: clientId,
-        scope: SCOPES,
-        ux_mode: 'popup',
-        callback: async (response) => {
-          if (response.error) {
-            console.error('Code response error:', response.error)
-            return
-          }
-          
-          try {
-            // Exchange authorization code for tokens (including refresh token)
-            await this.exchangeCodeForTokens(response.code)
-          } catch (error) {
-            console.error('❌ Failed to exchange code for tokens:', error)
-          }
-        }
-      })
+      // Note: Using token client (implicit flow) for browser security
+      // Refresh tokens require server-side implementation with client secret
       console.log('✅ GIS token client initialized')
       
       this.isInitialized = true
@@ -267,48 +264,6 @@ class GoogleDriveSync {
     }
   }
 
-  // Exchange authorization code for tokens (including refresh token)
-  async exchangeCodeForTokens(code) {
-    try {
-      console.log('🔄 Exchanging authorization code for tokens...')
-      
-      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
-      if (!clientId) {
-        throw new Error('Google Client ID not configured')
-      }
-
-      const response = await fetch('https://oauth2.googleapis.com/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: new URLSearchParams({
-          client_id: clientId,
-          code: code,
-          grant_type: 'authorization_code',
-          redirect_uri: 'postmessage' // For popup flow
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
-        throw new Error(`Token exchange failed: ${response.status} ${errorData.error || response.statusText}`)
-      }
-
-      const tokenData = await response.json()
-      
-      // Store both access and refresh tokens
-      const expiresIn = tokenData.expires_in || 3600
-      this.storeTokens(tokenData.access_token, expiresIn, tokenData.refresh_token)
-      this.isSignedIn = true
-      
-      console.log('✅ Successfully exchanged code for tokens with refresh token')
-      return tokenData
-    } catch (error) {
-      console.error('❌ Failed to exchange code for tokens:', error)
-      throw error
-    }
-  }
 
   // Sign in to Google using new GIS
   async signIn(requestRefreshToken = true) {
@@ -337,29 +292,8 @@ class GoogleDriveSync {
 
       console.log('🔄 Starting Google sign-in flow with GIS...')
       
-      // Use code flow for refresh tokens on first sign-in, token flow for subsequent
-      if (requestRefreshToken && !this.refreshToken) {
-        return new Promise((resolve, reject) => {
-          this.codeClient.callback = async (response) => {
-            if (response.error) {
-              console.error('Code response error:', response.error)
-              reject(new Error(`Google sign-in failed: ${response.error}`))
-              return
-            }
-            
-            try {
-              await this.exchangeCodeForTokens(response.code)
-              console.log('✅ Successfully signed in to Google Drive with refresh token')
-              resolve(true)
-            } catch (error) {
-              reject(error)
-            }
-          }
-          
-          // Request authorization code for refresh token
-          this.codeClient.requestCode()
-        })
-      } else {
+      // Use token flow (implicit flow) - more suitable for browser apps
+      {
         return new Promise((resolve, reject) => {
           this.tokenClient.callback = (response) => {
             if (response.error) {
@@ -482,7 +416,7 @@ class GoogleDriveSync {
     }
   }
 
-  // Upload habit data to Google Drive (single file approach)
+  // Upload habit data and settings to Google Drive (single file approach)
   async uploadHabits(habitsData) {
     await this.ensureValidToken()
     
@@ -495,10 +429,19 @@ class GoogleDriveSync {
       const folderId = await this.ensureBetterHabitsFolder()
       
       const fileName = 'better-habits-backup.json'
+      
+      // Collect user settings
+      const settings = {
+        selectedTheme: localStorage.getItem('selectedTheme'),
+        reminderEnabled: localStorage.getItem('reminderEnabled'),
+        reminderTime: localStorage.getItem('reminderTime')
+      }
+      
       const fileContent = JSON.stringify({
         exportDate: new Date().toISOString(),
-        version: '1.0',
+        version: '1.1',
         habits: habitsData,
+        settings: settings,
         metadata: {
           totalHabits: habitsData.length,
           exportSource: 'Better Habits App'
