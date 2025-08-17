@@ -69,7 +69,10 @@ function History() {
   }
 
   const formatDate = (date) => {
-    return date.toISOString().split('T')[0]
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
   }
 
   const isInCurrentMonth = (date) => {
@@ -199,14 +202,16 @@ function History() {
                   <div className="grid grid-cols-7 gap-2 sm:gap-3 lg:gap-4">
                     {monthDates.map((date, index) => {
                       const dateStr = formatDate(date)
-                      const habitState = getHabitState(selectedHabit, dateStr)
                       const isInMonth = isInCurrentMonth(date)
                       const isTodayDate = isToday(date)
                       const isFuture = isFutureDate(date)
+                      
+                      // Only get habit state for dates that are in the current month and not in the future
+                      const habitState = (isInMonth && !isFuture) ? getHabitState(selectedHabit, dateStr) : 'none'
 
                       return (
                         <div
-                          key={index}
+                          key={`${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`}
                           className={`aspect-square flex flex-col items-center justify-center rounded-lg sm:rounded-xl lg:rounded-2xl text-sm sm:text-base lg:text-lg min-h-[3rem] sm:min-h-[4rem] lg:min-h-[5rem] ${
                             !isInMonth
                               ? 'text-neutral-300'

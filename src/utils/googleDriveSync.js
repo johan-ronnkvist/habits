@@ -209,7 +209,7 @@ class GoogleDriveSync {
     }
   }
 
-  // Upload habit data to Google Drive
+  // Upload habit data to Google Drive (single file approach)
   async uploadHabits(habitsData) {
     if (!this.isSignedIn) {
       throw new Error('Please sign in to Google Drive first')
@@ -219,7 +219,7 @@ class GoogleDriveSync {
       // Ensure the better-habits folder exists
       const folderId = await this.ensureBetterHabitsFolder()
       
-      const fileName = `better-habits-backup-${new Date().toISOString().split('T')[0]}.json`
+      const fileName = 'better-habits-backup.json'
       const fileContent = JSON.stringify({
         exportDate: new Date().toISOString(),
         version: '1.0',
@@ -230,39 +230,79 @@ class GoogleDriveSync {
         }
       }, null, 2)
 
-      // Create file metadata with parent folder
-      const metadata = {
-        name: fileName,
-        description: 'Better Habits app data backup',
-        mimeType: 'application/json',
-        parents: [folderId]
-      }
-
-      // Create multipart upload
-      const form = new FormData()
-      form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
-      form.append('file', new Blob([fileContent], { type: 'application/json' }))
-
-      const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${this.accessToken}`
-        },
-        body: form
+      // Check if backup file already exists
+      const existingFileResponse = await window.gapi.client.drive.files.list({
+        q: `'${folderId}' in parents and name='${fileName}'`,
+        fields: 'files(id,name)'
       })
 
-      if (!response.ok) {
-        throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log('✅ Successfully uploaded habits to better-habits folder:', result)
+      const existingFiles = existingFileResponse.result.files || []
       
-      return {
-        success: true,
-        fileId: result.id,
-        fileName: fileName,
-        uploadDate: new Date().toISOString()
+      if (existingFiles.length > 0) {
+        // Update existing file
+        const fileId = existingFiles[0].id
+        console.log('🔄 Updating existing backup file:', fileId)
+        
+        const response = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+          method: 'PATCH',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          },
+          body: fileContent
+        })
+
+        if (!response.ok) {
+          throw new Error(`Update failed: ${response.status} ${response.statusText}`)
+        }
+
+        const result = await response.json()
+        console.log('✅ Successfully updated backup file:', result)
+        
+        return {
+          success: true,
+          fileId: result.id || fileId,
+          fileName: fileName,
+          uploadDate: new Date().toISOString(),
+          operation: 'updated'
+        }
+      } else {
+        // Create new file
+        console.log('📁 Creating new backup file')
+        
+        const metadata = {
+          name: fileName,
+          description: 'Better Habits app data backup',
+          mimeType: 'application/json',
+          parents: [folderId]
+        }
+
+        const form = new FormData()
+        form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }))
+        form.append('file', new Blob([fileContent], { type: 'application/json' }))
+
+        const response = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`
+          },
+          body: form
+        })
+
+        if (!response.ok) {
+          throw new Error(`Upload failed: ${response.status} ${response.statusText}`)
+        }
+
+        const result = await response.json()
+        console.log('✅ Successfully created backup file:', result)
+        
+        return {
+          success: true,
+          fileId: result.id,
+          fileName: fileName,
+          uploadDate: new Date().toISOString(),
+          operation: 'created'
+        }
       }
     } catch (error) {
       console.error('❌ Failed to upload habits to Google Drive:', error)
@@ -270,14 +310,14 @@ class GoogleDriveSync {
     }
   }
 
-  // Get list of backup files from Google Drive
+  // Get backup file from Google Drive (single file approach)
   async listBackupFiles() {
     if (!this.isSignedIn) {
       throw new Error('Please sign in to Google Drive first')
     }
 
     try {
-      console.log('🔍 Listing backup files from better-habits folder...')
+      console.log('🔍 Looking for backup file in better-habits folder...')
       
       // Find the better-habits folder first
       const folderResponse = await window.gapi.client.drive.files.list({
@@ -293,15 +333,15 @@ class GoogleDriveSync {
 
       const folderId = folders[0].id
       
-      // List files in the better-habits folder
+      // Look for the single backup file
       const response = await window.gapi.client.drive.files.list({
-        q: `'${folderId}' in parents and name contains 'better-habits-backup' and mimeType='application/json'`,
-        fields: 'files(id,name,createdTime,size)',
-        orderBy: 'createdTime desc'
+        q: `'${folderId}' in parents and name='better-habits-backup.json'`,
+        fields: 'files(id,name,modifiedTime,size)',
+        orderBy: 'modifiedTime desc'
       })
 
       const files = response.result.files || []
-      console.log(`📁 Found ${files.length} backup files in better-habits folder:`, files.map(f => f.name))
+      console.log(`📁 Found ${files.length} backup file in better-habits folder:`, files.map(f => f.name))
       return files
     } catch (error) {
       console.error('❌ Failed to list backup files:', error)
@@ -352,67 +392,63 @@ class GoogleDriveSync {
       return null
     }
     
-    const latestFile = files[0] // Files are ordered by createdTime desc
+    const latestFile = files[0] // Files are ordered by modifiedTime desc
     return await this.downloadBackup(latestFile.id)
   }
 
-  // Delete all backup files from Google Drive
+  // Alias for getLatestBackup (used by auto-sync)
+  async getMostRecentBackup() {
+    return await this.getLatestBackup()
+  }
+
+  // Delete backup file from Google Drive
   async deleteAllBackups() {
     if (!this.isSignedIn) {
       throw new Error('Please sign in to Google Drive first')
     }
 
     try {
-      console.log('🗑️ Starting to delete all backup files...')
+      console.log('🗑️ Starting to delete backup file...')
       
-      // Get all backup files
+      // Get the backup file
       const files = await this.listBackupFiles()
       
       if (files.length === 0) {
-        console.log('ℹ️ No backup files found to delete')
+        console.log('ℹ️ No backup file found to delete')
         return { deletedCount: 0, errors: [] }
       }
 
-      console.log(`🗑️ Found ${files.length} backup files to delete`)
+      const file = files[0]
+      console.log(`🗑️ Deleting backup file: ${file.name}`)
       
-      const deletePromises = files.map(async (file) => {
-        try {
-          console.log(`🗑️ Deleting: ${file.name}`)
-          
-          const response = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
-            method: 'DELETE',
-            headers: {
-              'Authorization': `Bearer ${this.accessToken}`
-            }
-          })
-
-          if (!response.ok) {
-            throw new Error(`Failed to delete ${file.name}: ${response.status} ${response.statusText}`)
+      try {
+        const response = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`
           }
+        })
 
-          console.log(`✅ Deleted: ${file.name}`)
-          return { success: true, fileName: file.name }
-        } catch (error) {
-          console.error(`❌ Failed to delete ${file.name}:`, error)
-          return { success: false, fileName: file.name, error: error.message }
+        if (!response.ok) {
+          throw new Error(`Failed to delete ${file.name}: ${response.status} ${response.statusText}`)
         }
-      })
 
-      // Wait for all deletions to complete
-      const results = await Promise.all(deletePromises)
-      
-      const successful = results.filter(r => r.success)
-      const failed = results.filter(r => !r.success)
-      
-      console.log(`✅ Deletion complete: ${successful.length} successful, ${failed.length} failed`)
-      
-      return {
-        deletedCount: successful.length,
-        totalFiles: files.length,
-        errors: failed.map(f => `${f.fileName}: ${f.error}`)
+        console.log(`✅ Deleted backup file: ${file.name}`)
+        return {
+          deletedCount: 1,
+          totalFiles: 1,
+          errors: []
+        }
+      } catch (error) {
+        console.error(`❌ Failed to delete ${file.name}:`, error)
+        return {
+          deletedCount: 0,
+          totalFiles: 1,
+          errors: [`${file.name}: ${error.message}`]
+        }
       }
     } catch (error) {
-      console.error('❌ Failed to delete backup files:', error)
+      console.error('❌ Failed to delete backup file:', error)
       throw error
     }
   }
