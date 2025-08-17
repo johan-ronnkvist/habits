@@ -211,7 +211,7 @@ function Overview() {
       
       {/* Google Drive Sync Notification */}
       {showSyncNotification && (
-        <div className="mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+        <div className="mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-2xl flex items-start gap-3 shadow-elevation-1 hover:shadow-elevation-2 transition-all duration-300">
           <div className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0 mt-0.5">
             <span className="material-symbols-outlined text-lg sm:text-xl">
               cloud_sync
@@ -226,18 +226,18 @@ function Overview() {
           <div className="flex gap-2 flex-shrink-0">
             <button
               onClick={goToSettings}
-              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-2xl hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium shadow-elevation-1"
             >
               Connect
             </button>
             <button
               onClick={dismissNotification}
-              className="p-1.5 text-blue-400 hover:text-blue-600 transition-colors"
+              className="p-1.5 text-blue-400 hover:text-blue-600 hover:bg-blue-100 rounded-2xl transition-colors"
               title="Dismiss"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <span className="material-symbols-outlined text-base">
+                close
+              </span>
             </button>
           </div>
         </div>
@@ -249,12 +249,12 @@ function Overview() {
           {/* Left Navigation */}
           <button
             onClick={() => navigateWeek(-1)}
-            className="p-2 rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            className="p-2 rounded-3xl bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800 transition-all duration-300 min-h-[44px] min-w-[44px] flex items-center justify-center shadow-elevation-1 hover:shadow-elevation-2"
             title="Previous week"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <span className="material-symbols-outlined text-xl">
+              chevron_left
+            </span>
           </button>
           
           {/* Center Title */}
@@ -265,7 +265,7 @@ function Overview() {
             {!weekIncludesToday() && (
               <button
                 onClick={goToToday}
-                className="mt-2 px-3 py-1 rounded-lg bg-primary-100 hover:bg-primary-200 text-primary-700 hover:text-primary-800 transition-colors text-sm font-medium"
+                className="mt-2 px-3 py-1 rounded-2xl bg-primary-100 hover:bg-primary-200 text-primary-700 hover:text-primary-800 transition-colors text-sm font-medium shadow-elevation-1 hover:shadow-elevation-2"
                 title="Go to current week"
               >
                 Today
@@ -277,16 +277,16 @@ function Overview() {
           <button
             onClick={() => navigateWeek(1)}
             disabled={!canNavigateNext()}
-            className={`p-2 rounded-xl transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center ${
+            className={`p-2 rounded-3xl transition-all duration-300 min-h-[44px] min-w-[44px] flex items-center justify-center ${
               canNavigateNext()
-                ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800'
+                ? 'bg-neutral-100 hover:bg-neutral-200 text-neutral-600 hover:text-neutral-800 shadow-elevation-1 hover:shadow-elevation-2'
                 : 'bg-neutral-50 text-neutral-300 cursor-not-allowed'
             }`}
             title="Next week"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <span className="material-symbols-outlined text-xl">
+              chevron_right
+            </span>
           </button>
         </div>
 
@@ -294,12 +294,12 @@ function Overview() {
           <div className="text-center py-12">
             <button
               onClick={() => navigate('/habits')}
-              className="w-16 h-16 bg-neutral-200 hover:bg-neutral-300 rounded-4xl flex items-center justify-center mx-auto mb-4 transition-colors group"
+              className="w-16 h-16 bg-neutral-200 hover:bg-neutral-300 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all duration-300 group shadow-elevation-1 hover:shadow-elevation-2"
               title="Go to Habits page"
             >
-              <svg className="w-8 h-8 text-neutral-500 group-hover:text-neutral-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+              <span className="material-symbols-outlined text-neutral-500 group-hover:text-neutral-700 transition-colors text-3xl">
+                checklist
+              </span>
             </button>
             <p className="text-neutral-500 text-lg">No habits created yet</p>
             <p className="text-neutral-400">Click the icon above to add your first habit</p>
@@ -321,12 +321,12 @@ function Overview() {
                       key={day}
                       onClick={() => !isFuture && setSelectedDate(dateStr)}
                       disabled={isFuture}
-                      className={`text-center p-0.5 sm:p-2 rounded sm:rounded-xl transition-colors w-full ${
+                      className={`text-center p-0.5 sm:p-2 rounded-xl sm:rounded-2xl transition-all duration-300 w-full ${
                         isFuture
                           ? 'cursor-not-allowed opacity-50'
                           : isSelected
-                            ? 'bg-primary-100 text-primary-700'
-                            : 'hover:bg-neutral-100'
+                            ? 'bg-primary-100 text-primary-700 shadow-elevation-1'
+                            : 'hover:bg-neutral-100 hover:shadow-elevation-1'
                       }`}
                       title={isFuture ? 'Future date' : `Select ${date.toLocaleDateString()}`}
                     >
@@ -413,12 +413,12 @@ function Overview() {
           <div className="text-center py-8 sm:py-12">
             <button
               onClick={() => navigate('/habits')}
-              className="w-12 h-12 sm:w-16 sm:h-16 bg-neutral-200 hover:bg-neutral-300 rounded-4xl flex items-center justify-center mx-auto mb-3 sm:mb-4 transition-colors group"
+              className="w-12 h-12 sm:w-16 sm:h-16 bg-neutral-200 hover:bg-neutral-300 rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 transition-all duration-300 group shadow-elevation-1 hover:shadow-elevation-2"
               title="Go to Habits page"
             >
-              <svg className="w-6 h-6 sm:w-8 sm:h-8 text-neutral-500 group-hover:text-neutral-700 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-              </svg>
+              <span className="material-symbols-outlined text-neutral-500 group-hover:text-neutral-700 transition-colors text-2xl sm:text-3xl">
+                checklist
+              </span>
             </button>
             <p className="text-neutral-500 text-base sm:text-lg">No habits created yet</p>
             <p className="text-neutral-400 text-sm sm:text-base">Click the icon above to add your first habit</p>
@@ -429,7 +429,7 @@ function Overview() {
               const habitState = getHabitState(habit, selectedDate)
               
               return (
-                <div key={habit.id} className="border border-neutral-200 rounded-2xl p-6">
+                <div key={habit.id} className="border border-neutral-200 rounded-2xl p-6 shadow-elevation-1 hover:shadow-elevation-2 transition-all duration-300">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
                       <div className="w-12 h-12 bg-primary-100 rounded-3xl flex items-center justify-center flex-shrink-0">
@@ -454,33 +454,33 @@ function Overview() {
                       ) : habitState !== 'none' ? (
                         <button
                           onClick={() => handleStateChange(habit.id, 'none')}
-                          className="p-3 rounded-2xl bg-neutral-100 text-neutral-400 hover:bg-neutral-200 transition-colors"
+                          className="p-3 rounded-2xl bg-neutral-100 text-neutral-400 hover:bg-neutral-200 transition-all duration-300 shadow-elevation-1 hover:shadow-elevation-2"
                           title="Clear state"
                         >
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                          </svg>
+                          <span className="material-symbols-outlined text-xl">
+                            clear
+                          </span>
                         </button>
                       ) : (
                         <>
                           <button
                             onClick={() => handleStateChange(habit.id, 'completed')}
-                            className="p-3 rounded-2xl bg-neutral-100 text-neutral-400 hover:bg-green-100 hover:text-green-600 transition-colors"
+                            className="p-3 rounded-2xl bg-neutral-100 text-neutral-400 hover:bg-green-100 hover:text-green-600 transition-all duration-300 shadow-elevation-1 hover:shadow-elevation-2"
                             title="Mark as completed"
                           >
-                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
-                            </svg>
+                            <span className="material-symbols-outlined text-xl">
+                              check
+                            </span>
                           </button>
                           
                           <button
                             onClick={() => handleStateChange(habit.id, 'failed')}
-                            className="p-3 rounded-2xl bg-neutral-100 text-neutral-400 hover:bg-red-100 hover:text-red-600 transition-colors"
+                            className="p-3 rounded-2xl bg-neutral-100 text-neutral-400 hover:bg-red-100 hover:text-red-600 transition-all duration-300 shadow-elevation-1 hover:shadow-elevation-2"
                             title="Mark as failed"
                           >
-                            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
-                            </svg>
+                            <span className="material-symbols-outlined text-xl">
+                              close
+                            </span>
                           </button>
                         </>
                       )}
@@ -488,7 +488,7 @@ function Overview() {
                   </div>
                   
                   {habitState !== 'none' && (
-                    <div className={`mt-4 px-4 py-2 rounded-xl text-sm font-medium ${
+                    <div className={`mt-4 px-4 py-2 rounded-2xl text-sm font-medium ${
                       habitState === 'completed' 
                         ? 'bg-green-50 text-green-700'
                         : 'bg-red-50 text-red-700'

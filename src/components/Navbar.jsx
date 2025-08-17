@@ -6,8 +6,7 @@ function Navbar() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center gap-3">
-            <img src="/icon.svg" alt="Better Habits" className="w-8 h-8 min-[380px]:hidden sm:block" />
-            <h1 className="text-xl font-medium text-white hidden min-[380px]:block">Better Habits</h1>
+            <h1 className="text-xl font-medium text-white">Better Habits</h1>
           </div>
           
           <div className="flex space-x-2">
