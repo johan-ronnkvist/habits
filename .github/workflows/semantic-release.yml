@@ -1,0 +1,85 @@
+name: Semantic Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Run tests (if available)
+        run: npm test --if-present
+
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npx semantic-release
+
+  version-check:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+
+      - name: Check for conventional commits
+        run: |
+          echo "Checking commit messages for conventional commit format..."
+          # Get commits in this PR
+          git log --oneline origin/main..HEAD --pretty=format:"%s" | while read commit_msg; do
+            if [[ ! "$commit_msg" =~ ^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?\!?:\ .+ ]]; then
+              echo "⚠️  Non-conventional commit found: $commit_msg"
+              echo "Consider using conventional commit format:"
+              echo "  feat: add new feature"
+              echo "  fix: resolve bug"
+              echo "  docs: update documentation"
+              echo "  chore: maintenance tasks"
+            else
+              echo "✅ Conventional commit: $commit_msg"
+            fi
+          done
