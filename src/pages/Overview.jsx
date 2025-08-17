@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getAllHabits, setHabitState, getHabitState } from '../utils/indexedDB'
+import googleDriveSync from '../utils/googleDriveSync'
 
 function Overview() {
   const navigate = useNavigate()
@@ -15,9 +16,12 @@ function Overview() {
     return monday
   })
   const [isLoading, setIsLoading] = useState(true)
+  const [isGoogleDriveConnected, setIsGoogleDriveConnected] = useState(false)
+  const [showSyncNotification, setShowSyncNotification] = useState(false)
 
   useEffect(() => {
     loadHabits()
+    checkGoogleDriveStatus()
   }, [])
 
   const loadHabits = async () => {
@@ -30,6 +34,44 @@ function Overview() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const checkGoogleDriveStatus = async () => {
+    try {
+      await googleDriveSync.init()
+      const isConnected = googleDriveSync.getSignInStatus()
+      setIsGoogleDriveConnected(isConnected)
+    } catch (error) {
+      console.log('Google Drive status check failed:', error)
+      setIsGoogleDriveConnected(false)
+    }
+  }
+
+  // Re-check Google Drive status when habits change
+  useEffect(() => {
+    const dismissedTime = localStorage.getItem('syncNotificationDismissed')
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000) // 24 hours ago
+    
+    // Show notification if:
+    // - User has habits
+    // - Google Drive not connected
+    // - Notification wasn't dismissed today OR was dismissed more than 24 hours ago
+    if (habits.length > 0 && !isGoogleDriveConnected) {
+      if (!dismissedTime || parseInt(dismissedTime) < oneDayAgo) {
+        setShowSyncNotification(true)
+      }
+    } else {
+      setShowSyncNotification(false)
+    }
+  }, [habits, isGoogleDriveConnected])
+
+  const dismissNotification = () => {
+    setShowSyncNotification(false)
+    localStorage.setItem('syncNotificationDismissed', Date.now().toString())
+  }
+
+  const goToSettings = () => {
+    navigate('/settings')
   }
 
   const handleStateChange = async (habitId, newState) => {
@@ -166,6 +208,40 @@ function Overview() {
 
   return (
     <div className="max-w-5xl mx-auto p-4 sm:p-6">
+      
+      {/* Google Drive Sync Notification */}
+      {showSyncNotification && (
+        <div className="mb-4 p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-xl flex items-start gap-3">
+          <div className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600 flex-shrink-0 mt-0.5">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m3 3V10" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-blue-900 text-sm sm:text-base">Backup Your Habits</h4>
+            <p className="text-blue-700 text-xs sm:text-sm mt-1">
+              Connect Google Drive to automatically backup your habit data and sync across devices.
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={goToSettings}
+              className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
+            >
+              Connect
+            </button>
+            <button
+              onClick={dismissNotification}
+              className="p-1.5 text-blue-400 hover:text-blue-600 transition-colors"
+              title="Dismiss"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
       
       {/* Weekly Habit Overview */}
       <div className="card p-4 sm:p-6 lg:p-8 mb-6">
