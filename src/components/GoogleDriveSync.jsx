@@ -69,9 +69,25 @@ function GoogleDriveSync() {
       console.log('🔍 Checking actual Google Drive sign-in status...')
       await googleDriveSync.init()
       
-      // The googleDriveSync now automatically restores tokens from localStorage
-      const actualSignedIn = googleDriveSync.getSignInStatus()
+      // The googleDriveSync now automatically restores tokens from localStorage and handles refresh
+      let actualSignedIn = googleDriveSync.getSignInStatus()
       const cachedSignedIn = localStorage.getItem('googleDriveSignedIn') === 'true'
+      
+      // If not signed in but we have cached state, try to validate/refresh tokens
+      if (!actualSignedIn && cachedSignedIn) {
+        console.log('🔄 Cached state indicates signed in but current state is not, attempting token validation...')
+        try {
+          // This will attempt to refresh tokens if needed
+          await googleDriveSync.ensureValidToken()
+          actualSignedIn = googleDriveSync.getSignInStatus()
+          
+          if (actualSignedIn) {
+            console.log('✅ Successfully refreshed authentication from cached tokens')
+          }
+        } catch (refreshErr) {
+          console.log('❌ Failed to refresh tokens, will require new sign-in:', refreshErr.message)
+        }
+      }
       
       // Check if cached state differs from actual state
       if (actualSignedIn !== cachedSignedIn) {

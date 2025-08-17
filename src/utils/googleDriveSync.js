@@ -19,20 +19,28 @@ class GoogleDriveSync {
   }
   
   // Store tokens in localStorage for persistence
-  storeTokens(accessToken, expiresIn) {
+  storeTokens(accessToken, expiresIn, refreshToken = null) {
     this.accessToken = accessToken
     this.tokenExpiry = Date.now() + (expiresIn * 1000) // Convert seconds to milliseconds
     
     localStorage.setItem('google_access_token', accessToken)
     localStorage.setItem('google_token_expiry', this.tokenExpiry.toString())
     
-    console.log('💾 Stored tokens in localStorage')
+    // Store refresh token if provided (for longer persistence)
+    if (refreshToken) {
+      this.refreshToken = refreshToken
+      localStorage.setItem('google_refresh_token', refreshToken)
+      console.log('💾 Stored access token and refresh token in localStorage')
+    } else {
+      console.log('💾 Stored access token in localStorage (no refresh token)')
+    }
   }
   
   // Restore tokens from localStorage
   restoreTokensFromStorage() {
     const storedToken = localStorage.getItem('google_access_token')
     const storedExpiry = localStorage.getItem('google_token_expiry')
+    const storedRefreshToken = localStorage.getItem('google_refresh_token')
     
     if (storedToken && storedExpiry) {
       const expiry = parseInt(storedExpiry)
@@ -42,12 +50,21 @@ class GoogleDriveSync {
       if (expiry > now + (5 * 60 * 1000)) {
         this.accessToken = storedToken
         this.tokenExpiry = expiry
+        this.refreshToken = storedRefreshToken
         this.isSignedIn = true
         console.log('✅ Restored valid access token from localStorage')
         return true
       } else {
-        console.log('⚠️ Stored token has expired, will need to re-authenticate')
-        this.clearStoredTokens()
+        console.log('⚠️ Stored access token has expired')
+        // If we have a refresh token, try to refresh instead of clearing all tokens
+        if (storedRefreshToken) {
+          this.refreshToken = storedRefreshToken
+          console.log('🔄 Will attempt to refresh expired token using refresh token')
+          return 'needs_refresh'
+        } else {
+          console.log('❌ No refresh token available, will need to re-authenticate')
+          this.clearStoredTokens()
+        }
       }
     }
     return false
@@ -57,10 +74,12 @@ class GoogleDriveSync {
   clearStoredTokens() {
     this.accessToken = null
     this.tokenExpiry = null
+    this.refreshToken = null
     this.isSignedIn = false
     
     localStorage.removeItem('google_access_token')
     localStorage.removeItem('google_token_expiry')
+    localStorage.removeItem('google_refresh_token')
     
     console.log('🗑️ Cleared stored tokens')
   }
@@ -78,9 +97,68 @@ class GoogleDriveSync {
     return this.tokenExpiry > (now + bufferTime)
   }
 
+  // Refresh access token using refresh token
+  async refreshAccessToken() {
+    if (!this.refreshToken) {
+      throw new Error('No refresh token available')
+    }
+
+    try {
+      console.log('🔄 Refreshing access token...')
+      
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+      if (!clientId) {
+        throw new Error('Google Client ID not configured')
+      }
+
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          refresh_token: this.refreshToken,
+          grant_type: 'refresh_token'
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(`Token refresh failed: ${response.status} ${errorData.error || response.statusText}`)
+      }
+
+      const tokenData = await response.json()
+      
+      // Store the new access token (refresh token usually stays the same)
+      const expiresIn = tokenData.expires_in || 3600
+      this.storeTokens(tokenData.access_token, expiresIn, this.refreshToken)
+      this.isSignedIn = true
+      
+      console.log('✅ Successfully refreshed access token')
+      return true
+    } catch (error) {
+      console.error('❌ Failed to refresh access token:', error)
+      // If refresh fails, clear tokens and require re-authentication
+      this.clearStoredTokens()
+      throw error
+    }
+  }
+
   // Initialize Google API using new Google Identity Services
   async init() {
-    if (this.isInitialized) return true
+    if (this.isInitialized) {
+      // Check if we need to refresh token after initialization
+      const tokenStatus = this.restoreTokensFromStorage()
+      if (tokenStatus === 'needs_refresh') {
+        try {
+          await this.refreshAccessToken()
+        } catch {
+          console.log('❌ Token refresh failed during init, will require sign-in')
+        }
+      }
+      return true
+    }
 
     try {
       console.log('🔄 Starting Google Drive API initialization with GIS...')
@@ -144,9 +222,30 @@ class GoogleDriveSync {
           
           // Store tokens with expiry information
           const expiresIn = response.expires_in || 3600 // Default 1 hour
+          // Note: GIS doesn't provide refresh tokens directly, but we can get them through authorization code flow
           this.storeTokens(response.access_token, expiresIn)
           this.isSignedIn = true
           console.log('✅ Access token received and stored')
+        }
+      })
+      
+      // Also initialize a code client for getting refresh tokens
+      this.codeClient = window.google.accounts.oauth2.initCodeClient({
+        client_id: clientId,
+        scope: SCOPES,
+        ux_mode: 'popup',
+        callback: async (response) => {
+          if (response.error) {
+            console.error('Code response error:', response.error)
+            return
+          }
+          
+          try {
+            // Exchange authorization code for tokens (including refresh token)
+            await this.exchangeCodeForTokens(response.code)
+          } catch (error) {
+            console.error('❌ Failed to exchange code for tokens:', error)
+          }
         }
       })
       console.log('✅ GIS token client initialized')
@@ -168,8 +267,51 @@ class GoogleDriveSync {
     }
   }
 
+  // Exchange authorization code for tokens (including refresh token)
+  async exchangeCodeForTokens(code) {
+    try {
+      console.log('🔄 Exchanging authorization code for tokens...')
+      
+      const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+      if (!clientId) {
+        throw new Error('Google Client ID not configured')
+      }
+
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          client_id: clientId,
+          code: code,
+          grant_type: 'authorization_code',
+          redirect_uri: 'postmessage' // For popup flow
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(`Token exchange failed: ${response.status} ${errorData.error || response.statusText}`)
+      }
+
+      const tokenData = await response.json()
+      
+      // Store both access and refresh tokens
+      const expiresIn = tokenData.expires_in || 3600
+      this.storeTokens(tokenData.access_token, expiresIn, tokenData.refresh_token)
+      this.isSignedIn = true
+      
+      console.log('✅ Successfully exchanged code for tokens with refresh token')
+      return tokenData
+    } catch (error) {
+      console.error('❌ Failed to exchange code for tokens:', error)
+      throw error
+    }
+  }
+
   // Sign in to Google using new GIS
-  async signIn() {
+  async signIn(requestRefreshToken = true) {
     if (!this.isInitialized) {
       await this.init()
     }
@@ -181,34 +323,63 @@ class GoogleDriveSync {
         return true
       }
       
-      // Clear expired tokens
-      if (this.accessToken && !this.isTokenValid()) {
-        console.log('⚠️ Current token expired, clearing and requesting new one')
-        this.clearStoredTokens()
+      // Try to refresh token if available
+      if (this.refreshToken && !this.isTokenValid()) {
+        try {
+          console.log('🔄 Attempting to refresh expired token...')
+          await this.refreshAccessToken()
+          return true
+        } catch {
+          console.log('❌ Token refresh failed, proceeding with new sign-in')
+          this.clearStoredTokens()
+        }
       }
 
       console.log('🔄 Starting Google sign-in flow with GIS...')
       
-      return new Promise((resolve, reject) => {
-        // Update the callback to handle the promise
-        this.tokenClient.callback = (response) => {
-          if (response.error) {
-            console.error('Token response error:', response.error)
-            reject(new Error(`Google sign-in failed: ${response.error}`))
-            return
+      // Use code flow for refresh tokens on first sign-in, token flow for subsequent
+      if (requestRefreshToken && !this.refreshToken) {
+        return new Promise((resolve, reject) => {
+          this.codeClient.callback = async (response) => {
+            if (response.error) {
+              console.error('Code response error:', response.error)
+              reject(new Error(`Google sign-in failed: ${response.error}`))
+              return
+            }
+            
+            try {
+              await this.exchangeCodeForTokens(response.code)
+              console.log('✅ Successfully signed in to Google Drive with refresh token')
+              resolve(true)
+            } catch (error) {
+              reject(error)
+            }
           }
           
-          // Store tokens with expiry information
-          const expiresIn = response.expires_in || 3600 // Default 1 hour
-          this.storeTokens(response.access_token, expiresIn)
-          this.isSignedIn = true
-          console.log('✅ Successfully signed in to Google Drive with GIS')
-          resolve(true)
-        }
-        
-        // Request access token (will prompt user if needed)
-        this.tokenClient.requestAccessToken({ prompt: '' })
-      })
+          // Request authorization code for refresh token
+          this.codeClient.requestCode()
+        })
+      } else {
+        return new Promise((resolve, reject) => {
+          this.tokenClient.callback = (response) => {
+            if (response.error) {
+              console.error('Token response error:', response.error)
+              reject(new Error(`Google sign-in failed: ${response.error}`))
+              return
+            }
+            
+            // Store tokens with expiry information
+            const expiresIn = response.expires_in || 3600 // Default 1 hour
+            this.storeTokens(response.access_token, expiresIn, this.refreshToken)
+            this.isSignedIn = true
+            console.log('✅ Successfully signed in to Google Drive with GIS')
+            resolve(true)
+          }
+          
+          // Request access token (will prompt user if needed)
+          this.tokenClient.requestAccessToken({ prompt: '' })
+        })
+      }
     } catch (error) {
       console.error('❌ Failed to sign in to Google Drive:', error)
       throw new Error(`Google sign-in failed: ${error.message}`)
@@ -244,7 +415,21 @@ class GoogleDriveSync {
   async ensureValidToken() {
     if (!this.isSignedIn || !this.isTokenValid()) {
       console.log('🔄 Token invalid or expired, attempting to refresh...')
-      await this.signIn()
+      
+      // Try to refresh first if we have a refresh token
+      if (this.refreshToken) {
+        try {
+          await this.refreshAccessToken()
+          return this.isTokenValid()
+        } catch {
+          console.log('❌ Token refresh failed, requiring new sign-in')
+          // Fall back to sign-in
+          await this.signIn()
+        }
+      } else {
+        // No refresh token, need to sign in
+        await this.signIn()
+      }
     }
     return this.isTokenValid()
   }
